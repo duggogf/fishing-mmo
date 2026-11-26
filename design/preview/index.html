@@ -1811,11 +1811,11 @@ Optional (1 d):      FRecordedPresenceService replays 7 recorded paths for mock-
   <h3>Core rules</h3>
   <ul>
     <li><span class="lab c">CONFIRMED D9</span> <strong>Desktop scale.</strong> PC monitor at desk distance, 1080p reference. Text follows XAG 101's PC minimum (18 px body height at 1080p), not the 26–28 px console/TV values of the first draft.</li>
-    <li><span class="lab c">CONFIRMED D9</span> <strong>Two surfaces.</strong> HUD over the world = <strong>Ink Glass</strong>: <code>#33273B</code> at 70%, radius 10 px, no frame or shadow, Paper Cream text. Screens and dialogs = <strong>Paper</strong>: opaque Cream, 2 px Cocoa frame, radius 14 px, one soft shadow, Ink text; primary button Cocoa, confirm Collar Crimson. No bevels, sticker outlines or stacked shadows.</li>
+    <li><span class="lab c">CONFIRMED D9</span> <strong>Two surfaces.</strong> HUD states (<code>/clean-ui</code>): <strong>Hidden</strong> · <strong>Ambient</strong> (default at sea: no plate, cream glyphs at 92% with a 1–2 px ink outline and soft shadow) · <strong>Focused</strong> (Ink Glass <code>#33273B</code> at 70%, radius 10 px, 1.2×, 150 ms ease; needs a trigger and an exit). Screens = Paper.</li>
     <li><span class="lab c">CONFIRMED D9</span> <strong>Show it only when it changes a decision.</strong> Not on the HUD: crew list, crew state, efficiency, region name (except on entry), fish counts, save state beyond the 1 s buoy (07). Crew are read from the deck and the log.</li>
     <li><span class="lab p">PROPOSED</span> UI is 2D UMG, not post-processed by Kuwahara.</li>
     <li><span class="lab c">CONFIRMED</span> Any harbour action ≤ 2 clicks from the counter; the one exception is 05's single confirm for purchases ≥ 100 Shells (D8). No repeating prompts, "you could be earning" text or badge counters.</li>
-    <li><span class="lab p">PROPOSED</span> Cargo, Shells and compass fade to 40% after 8 s without change while sailing (any change or mouse move restores 100% for 4 s); <code>H</code> hides all.</li>
+    <li><span class="lab p">PROPOSED</span> <strong>Peek</strong>: hold Tab / LB and everything is Focused, including Shells. H hides all. Accessibility → HUD style: Ambient (default) or Always backed.</li>
   </ul>
 
   <h3>HUD (Sailing, 1920 × 1080 reference)</h3>
@@ -1837,11 +1837,11 @@ Optional (1 d):      FRecordedPresenceService replays 7 recorded paths for mock-
     <tbody>
       <tr><td><strong>Cargo</strong></td><td>top-left</td><td>Fish icon 24 + bar 120 × 8 + <code>23/32</code> (18 px, tabular). Full: box-lid icon, striped bar, "Full" (never colour alone). Each landed fish shows a <code>+1</code> rising 12 px over 0.8 s.</td></tr>
       <tr><td><strong>Shells</strong></td><td>top-right</td><td>Shell icon 24 + integer 20 px/600 with separators; <code>+N</code> on sale only.</td></tr>
-      <tr><td><strong>Compass</strong></td><td>top-centre</td><td>420 × 28 Ink Glass strip, letters 16 px, 18 px markers: harbour always, discoveries once seen, Beacon Amber ping. Region name 18 px under it for 6 s at 50% of the band.</td></tr>
+      <tr><td><strong>Compass</strong></td><td>top-centre</td><td>Ambient ticks and letters (no strip), 18 px markers: harbour always, discoveries once seen, Beacon Amber ping. Region name 18 px under it for 6 s at 50% of the band.</td></tr>
       <tr><td><strong>Action bar</strong></td><td>bottom-left</td><td>Key/button glyph (24 px keycap or Xbox disc with the letter inside) + verb 18 px/600, gap 20. Sailing: <code>WASD</code> Sail · <code>Space</code> Anchor · <code>C</code> Crew · <code>J</code> Journal · <code>Enter</code> Chat · <code>Esc</code> Menu. At a counter <code>E</code> Talk goes first, highlighted. In a screen it shows that screen's prompts. Every item is also a mouse button. Settings: Full · Context only · Off.</td></tr>
-      <tr><td><strong>Activity log + chat</strong></td><td>bottom-left, above the bar</td><td>440 px wide, up to 6 lines / 168 px. Idle: no box; each line on Ink Glass for 12 s, then fades over 1 s. Hover / <code>L</code> / D-pad up opens the last 20 lines with tabs All · Crew · Chat. Lines 18 px, max 2 lines, crew name in bold. Rate cap ≤ 1 line per 3 s; same-type lines merge.</td></tr>
+      <tr><td><strong>Activity log + chat</strong></td><td>bottom-left, above the bar</td><td>440 px wide, up to 6 lines / 168 px. Idle: no box; each line is outlined text for 12 s, then fades over 1 s. Hover / <code>L</code> / D-pad up opens the last 20 lines with tabs All · Crew · Chat. Lines 18 px, max 2 lines, crew name in bold. Rate cap ≤ 1 line per 3 s; same-type lines merge.</td></tr>
       <tr><td>Speed readout</td><td>bottom-right</td><td><code>6 kn</code> + 5-notch ladder on a 112 × 40 plate, while the throttle changes and 3 s after; "Anchored" stays while anchored.</td></tr>
-      <tr><td>Hint pill</td><td>bottom-centre</td><td>72 px above the edge, Ink Glass, 20 px text, max one on screen (onboarding, swell toast).</td></tr>
+      <tr><td>Hint pill</td><td>bottom-centre</td><td>112 px above the edge, Focused, 20 px text, max one on screen (onboarding, swell toast).</td></tr>
     </tbody>
   </table></div>
   <p><strong>Logged (solo, built):</strong> first catch of a species per trip, new species, Uncommon+, hold half/full, region entered, discovery, sale total, hull bought, crew hired, cosmetic earned, whale pod ping, crew left the zone. Routine catches are <strong>not</strong> logged (the cargo <code>+1</code> covers them). Chat is a <strong>mock-up only</strong> (D3): <code>Enter</code> opens a 32-tall input row in the open box; 140 chars (06).</p>
@@ -1881,7 +1881,7 @@ Optional (1 d):      FRecordedPresenceService replays 7 recorded paths for mock-
   <ul>
     <li><strong>Crew panel</strong> (<code>C</code>, Paper 520 × 330): read-only roster; per crew a 36 × 48 dummy + slot number + name 20 px + state glyph and word 18 px (rod "Fishing", cup "Resting", dots "Not in a fishing spot"); efficiency as words, never a number. This and the crew board are the only crew UI.</li>
     <li><strong>Journal</strong> (<code>J</code>, Paper 720 × 400): tabs Fish · Places; "seen" list only, undiscovered = flat silhouettes, "7 of 11 seen"; earned cosmetics show a small stamp on the entry (11).</li>
-    <li><strong>Pause menu</strong> (<code>Esc</code> at sea, previously missing): Paper 360 × 420 column with a 720 × 500 settings panel beside it; the game keeps running behind it in solo. Resume · Settings · Companion window (F9) · Controls · Quit. Settings tabs: Display (UI scale 80–150%, HUD fade, Action bar Full/Context/Off), Audio, Controls (rebind, glyph style), Accessibility (text scale, reduce motion/flashes, hints off, Ink Glass opacity 70–85%). Each change previews live.</li>
+    <li><strong>Pause menu</strong> (<code>Esc</code> at sea, previously missing): Paper 360 × 420 column with a 720 × 500 settings panel beside it; the game keeps running behind it in solo. Resume · Settings · Companion window (F9) · Controls · Quit. Settings tabs: Display (UI scale 80–150%, HUD fade, Action bar Full/Context/Off), Audio, Controls (rebind, glyph style), Accessibility (text scale, reduce motion/flashes, hints off, HUD style Ambient / Always backed). Each change previews live.</li>
   </ul>
 
   <h3>Encounter ping and chat</h3>
@@ -1904,6 +1904,15 @@ Optional (1 d):      FRecordedPresenceService replays 7 recorded paths for mock-
   </table></div>
   <p class="muted">Each hint shows once, max 1 on screen, dismissed on action or after 8 s; "Hints off" in settings; no tutorial gates.</p>
 
+  <h3>Relevance matrix (H Hidden · A Ambient · F Focused)</h3>
+  <div class="tw"><table><thead><tr><th>Element</th><th>Sailing (rest)</th><th>Hold filled</th><th>At counter</th><th>Harbour screen</th><th>Chat open</th><th>Peek</th></tr></thead><tbody>
+  <tr><td>Cargo</td><td>A</td><td>F 6 s</td><td>A</td><td>F (Fishmonger)</td><td>A</td><td>F</td></tr>
+  <tr><td>Shells</td><td>H (+N lift on change)</td><td>H</td><td>A</td><td>F</td><td>H</td><td>F</td></tr>
+  <tr><td>Compass</td><td>A</td><td>A, harbour marker brightens</td><td>H</td><td>H</td><td>A</td><td>F</td></tr>
+  <tr><td>Prompts</td><td>A outlined keycaps</td><td>A</td><td>F E Talk</td><td>F screen prompts</td><td>F</td><td>—</td></tr>
+  <tr><td>Log / chat</td><td>A lines fade 12 s</td><td>A</td><td>A</td><td>H (queued)</td><td>F box + input (Enter → Esc)</td><td>A</td></tr>
+  <tr><td>Region / speed</td><td>H; F 6 s on entry / A while throttling</td><td></td><td></td><td></td><td></td><td>F</td></tr>
+  </tbody></table></div>
   <h3>Formulas</h3>
   <div class="f">
     <p><strong>F1 Cargo fill</strong> = <code>CargoLoad / CargoCapacity</code>; bar width = 120 px × fill × S. Example 26/32 → 0.81 → 98 px.</p>
@@ -1974,7 +1983,7 @@ Optional (1 d):      FRecordedPresenceService replays 7 recorded paths for mock-
   <h3>Open questions</h3>
   <ol class="oq">
     <li><strong>Gamepad anchor</strong>: Y (02) or B (10)? B also means Back inside screens; Y avoids the overlap.</li>
-    <li><strong>Action bar fade</strong>: fade to 60% after <code>HudFadeDelay</code> like the corner HUD? PROPOSED no (it is the discoverability surface); revisit after H1 observer notes.</li>
+    <li><strong>Action bar fade</strong>: CLOSED by the clean-ui pass (prompts are Ambient; Context only / Off in settings) (it is the discoverability surface); revisit after H1 observer notes.</li>
     <li><strong>Efficiency as a number</strong> (e.g. tooltip)? PROPOSED no.</li>
     <li><strong>HUD auto-fade</strong> at all (calm) or fixed (glanceable)? Validate by H1 observer notes.</li>
   </ol>
