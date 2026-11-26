@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Little Ocean Preview</title>
+<style>
+  :root { --ink: #33273B; --cream: #FFF6E3; --cocoa: #6B4A35; --wisteria: #6E6AA8; --bg: #EFE7D6; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.4 system-ui, sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  .frame { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden; background: #A9DBF5; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+  button { font: inherit; padding: 6px 14px; border-radius: 999px; border: 2px solid var(--cocoa); background: var(--cream); color: var(--ink); cursor: pointer; }
+  button[aria-pressed="true"] { background: var(--cocoa); color: var(--cream); }
+  button:focus-visible { outline: 3px solid var(--wisteria); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="frame" id="stage"></div>
+  <div class="row">
+    <div role="group" aria-label="Light phase"><button id="day" aria-pressed="true">Day</button> <button id="dusk" aria-pressed="false">Dusk</button></div>
+    <div role="group" aria-label="Weather"><button id="clear" aria-pressed="true">Clear</button> <button id="drizzle" aria-pressed="false">Drizzle</button></div>
+  </div>
+</main>
+<script type="module">
+  import { mount } from './main.js';
+  const q = new URLSearchParams(location.search);
+  const opts = { phase: q.get('phase') || 'day', weather: q.get('weather') || 'clear', manual: q.has('manual'), preserveDrawingBuffer: q.has('manual'),
+    onReady: () => { window.__ready = true; } };
+  const api = mount(document.getElementById('stage'), opts);
+  window.__lo = api; if (opts.manual) window.__ready = true;
+  const seg = (ids, fn) => ids.forEach((id) => document.getElementById(id).addEventListener('click', () => {
+    ids.forEach((j) => document.getElementById(j).setAttribute('aria-pressed', String(j === id))); fn(id); }));
+  seg(['day', 'dusk'], (v) => api.setPhase(v));
+  seg(['clear', 'drizzle'], (v) => api.setWeather(v));
+  for (const [k, v] of [['day', opts.phase === 'day'], ['dusk', opts.phase === 'dusk'], ['clear', opts.weather === 'clear'], ['drizzle', opts.weather === 'drizzle']]) document.getElementById(k).setAttribute('aria-pressed', String(v));
+</script>
+</body>
+</html>
