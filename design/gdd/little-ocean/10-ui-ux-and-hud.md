@@ -2,223 +2,384 @@
 
 > **Status**: In Design · **Author**: ux-designer (agent A5) for owner · **Last Updated**: 2026-11-26 · **Last Verified**: 2026-11-26
 > **Implements Pillar**: P1, P2, P3, P4 · Supports **H1** (first sale ≤8 min), **H3** (paper), **H4**
-> Sources: brief §6, §9, §12; 00-direction §5 A5, **§9 D1–D4 (override)**; painted-cel UI spec (vfx-and-ui.md §UI).
+> Sources: brief §6, §9, §12; 00-direction §5 A5, **§9 D1–D4 (override)**; painted-cel UI spec (vfx-and-ui.md §UI);
+> **owner UX pass 2026-11-26** (desktop scale, no crew HUD, action bar, activity log); references listed in §References.
 
 ## Summary
-A quiet, corner-anchored HUD (cargo, Shells, crew, compass/region), two harbour screens reachable in ≤2 clicks,
-a crew panel, a "seen" journal, paper-only chat/ping mock-ups, a hint-led first 10 minutes, and a KB/M + gamepad map.
-> **Quick reference** — Layer: `Presentation` · Priority: `MVP` · Key deps: 01, 03, 04, 05, 06 (paper), 08, 09
+A small, desktop-scaled HUD: cargo and Shells in the top corners, a thin compass at top centre, an action bar of
+key prompts at bottom left with a quiet activity log / chat box above it. Persistent HUD covers ≤3% of the screen.
+Three harbour places with one job each (Fishmonger sells, Shipyard fits and paints, Inn crew board hires), a crew panel, a "seen" journal, paper-only multiplayer chat, a
+hint-led first 10 minutes, and a KB/M + gamepad map.
+> **Quick reference** — Layer: `Presentation` · Priority: `MVP` · Key deps: 01, 02, 03, 04, 05, 06 (paper), 08, 09, 11
 
 ## Overview
-UI exists to get out of the way of the sea (P1). The HUD shows only what a captain on holiday needs: how full is
-the hold, how many `Shells`, is the crew fishing, where am I. Everything else lives one key away. No timers, no
-red badges, no daily prompts (P3, brief §12). Fishing has no input of any kind (P2, **CONFIRMED brief §12**).
+UI exists to get out of the way of the sea (P1). While sailing the HUD shows only what changes a decision right
+now: how full the hold is (go home?), how many `Shells` (what can I buy?), and where the harbour is. Everything
+else is one key away, and the keys are always shown in the action bar so nothing has to be memorised. The crew
+is read from the deck itself (D4: they are visible on the boat) and from the activity log, not from a HUD list.
+No timers, no red badges, no daily prompts (P3, brief §12). Fishing has no input of any kind (P2, **CONFIRMED
+brief §12**).
 
 ## Player Fantasy
-"I glance at a little paper card in the corner — hold nearly full, Mabel and Pip still at it — and I keep looking at
-the horizon." Panels feel like warm paper notes pinned to a boat, never a dashboard.
+"The screen is mostly sea. A small count in the corner tells me the hold is nearly full; a line drifts up in the
+corner — *Pip landed a Mackerel, new!* — and fades. I look at the horizon again." Screens feel like a paper
+note handed across a counter, never a dashboard.
 
 ## Detailed Design
 
 ### Core Rules
-1. **Visual language (CONFIRMED painted-cel spec)**: opaque Paper Cream `#FFF6E3` beans, Cocoa `#6B4A35` 3 px
-   frame at 1080p, soft Wisteria shadow 3 px; text Aubergine Ink `#33273B`; primary pom = Cocoa fill + cream
-   text; confirm pom = Collar Crimson + cream text; crew icons are faceless blocky dummies (D7); one rounded sans, 2 weights, body
-   32 px, floor 28 px at 1080p. Exact hex for Wisteria/Collar Crimson and region accents: doc 09.
-2. **UI is ActsLayer-adjacent** (it responds) but is 2D Slate/UMG, not post-processed by Kuwahara (PROPOSED).
-3. **Depth rule**: any harbour action ≤2 clicks from walking up to the counter (CONFIRMED §5 A5); the one exception is doc 05's single confirm step for purchases ≥ 100 Shells (D8).
-4. **No nagging (CONFIRMED §5 A5)**: no repeating prompts, no "you could be earning" text, no badge counters.
-5. **HUD hides** in harbour screens and auto-fades to 40% after 8 s of no change while Sailing (PROPOSED;
-   any value change restores 100% for 4 s). Toggle full hide: `H`.
+1. **Desktop scale (owner UX pass)**: the game targets a PC monitor at desk distance, 1080p reference. Text sizes
+   follow the Xbox Accessibility Guideline 101 PC/VR minimum (18 px body height at 1080p), not the 26–28 px
+   console/TV (10-foot) values the first draft used. Type scale, sizes and scale formula: §Formulas, §Interface values.
+2. **Two surface styles**:
+   - **HUD over the world = Ink Glass**: Aubergine Ink `#33273B` at 70% alpha, radius 10 px, no frame, no drop
+     shadow; text Paper Cream `#FFF6E3`. 70% keeps cream text ≥4.5:1 even over pure white sky/foam (§Formulas F3).
+   - **Screens and dialogs = Paper**: opaque Paper Cream, 2 px Cocoa `#6B4A35` frame, radius 14 px, one soft
+     shadow (0 4 16 px, Ink 25%); text Ink. Primary button = Cocoa fill + cream text; confirm = Collar Crimson
+     `#D02A45` + cream text. Exact hex for Wisteria/Collar Crimson and region accents: doc 09.
+   - No decorative bevels, sticker outlines, stacked shadows or oversized pills; one corner radius family (10/14).
+3. **Show it only when it changes a decision** (owner UX pass). Each HUD element must answer a question the
+   player has *while sailing*. Not shown on the HUD: crew list, crew state, efficiency, region name (except on
+   entry), fish counts by species, save state beyond the 1 s buoy (07).
+4. **UI is ActsLayer-adjacent** (it responds) but is 2D Slate/UMG, not post-processed by Kuwahara (PROPOSED).
+5. **Depth rule**: any harbour action ≤2 clicks from walking up to the counter (CONFIRMED §5 A5); the one exception
+   is doc 05's single confirm step for purchases ≥ 100 Shells (D8).
+6. **No nagging (CONFIRMED §5 A5)**: no repeating prompts, no "you could be earning" text, no badge counters.
+7. **HUD fade**: cargo, Shells and compass fade to 40% after 8 s of no change while Sailing (PROPOSED; any value
+   change or mouse move restores 100% for 4 s). The action bar and log follow their own rules below. Hide all: `H`.
 
-### HUD (Full view, 1920×1080 reference)
+### HUD (Sailing, 1920×1080 reference)
 ```
-+--------------------------------------------------------------------------------------------+
-| [fish] [======== cargo ====    ] 28/40     ( N --- R1 Shallows --- E ---(o)ping 240 m )  [shell] 1,240 |
-|  cargo bean 420x72                         compass strip 640x56, region label 28 px      Shells bean 220x72 |
-|                                                                                            |
-|                                   (open sea)                                               |
-|                                                                                            |
-| [#1 dummy]Mabel [#2 dummy]Pip [#3 dummy]Tomo  <- 48x64 icon + slot glyph + name, state glyph |
-| crew bean 420x96 (2 or 3 entries)                                        [hint bean, rare] |
-+--------------------------------------------------------------------------------------------+
++--------------------------------------------------------------------------------------------------+
+|32                                                                                              32|
+| [fish ====---- 23/32]              [ N · · ⚓ · · E · · ]               [shell 1,240]  |
+|  cargo plate 232x40               compass 420x28                        Shells plate auto x40     |
+|                                    The Shallows   <- 18 px, on region entry only (6 s)          |
+|                                                                                                  |
+|                                     (open sea, ≥95% of the frame)                                |
+|                                                                                                  |
+| Pip landed a Mackerel · new          <- activity log 440x(0–168), lines fade 12 s     [6 kn ▮▮▮▯▯] |
+| Hold is half full                                                                   speed, 3 s  |
+| [W A S D] Sail [Space] Anchor [C] Crew [J] Journal [Enter] Chat [Esc] Menu                      |
+|  action bar, height 32                                           [hint pill, bottom centre]      |
++--------------------------------------------------------------------------------------------------+
 ```
-- **Cargo** (`CargoLoad`/`CargoCapacity`, doc 04): bar + numerals; at full shows box-lid icon + "Hold full".
-  Fill in Cocoa on cream; never colour alone (icon + text).
-- **Shells** (`Shells`, doc 05): integer with thousands separator; +N pop on sale only (3 drawings).
-- **Crew status** (D4, D7, doc 04/09): per `CrewSlot` a faceless blocky dummy icon (front view, 48×64 px) filled
-  with that `CrewId`'s body/shirt/pants colour triplet (doc 09), **plus** a slot-number glyph (#1/#2/#3 = deck
-  station, doc 09), **plus** the name label (28 px). State glyph stays: rod = fishing, cup = resting (`HoldFull`
-  or Harbour), dots = not in `ZoneId`. Identity never depends on colour alone (name + slot number always shown).
-  Hover/focus adds `CrewMember.Efficiency` as words. Starter: Mabel, Pip; Tomo appears with `Crew_2` (D5).
-- **Compass/region**: heading strip with N/E/S/W, harbour icon always shown; `RegionId` display name centred;
-  changes after crossing 50% of `TransitionBand` (doc 03). Discovery icons appear once seen.
+- **Cargo** (top-left, `CargoLoad`/`CargoCapacity`, doc 04): fish icon 24 px + bar 120×8 + count `23/32` (18 px,
+  tabular). At full: box-lid icon replaces the fish, bar stripes, count becomes "Full" (icon + word, never colour
+  alone). A landed fish shows a `+1` that rises 12 px and fades over 0.8 s next to the count (no per-fish log line).
+- **Shells** (top-right, doc 05): shell icon 24 px + integer 20 px/600 with thousands separator; `+N` on sale only.
+- **Compass** (top-centre): 420×28 Ink Glass strip, cardinal letters 16 px, 18 px markers: harbour always,
+  discoveries once seen, Beacon Amber ping marker (06/03). **Region name** (`RegionId` display name, 18 px/600)
+  appears under the strip for 6 s when crossing 50% of `TransitionBand` (doc 03), then fades; always readable in
+  the journal and as the compass tooltip.
+- **Speed readout** (bottom-right, doc 02): `6 kn` + 5-notch throttle ladder on a 112×40 plate. Shown while the
+  throttle changes and for 3 s after; an anchor icon + "Anchored" stays while `Anchored`. Hidden otherwise.
+- **Action bar** (bottom-left; replaces the first draft's crew bean): one row of input prompts, each a key/button
+  glyph + verb. Glyph = 24 px keycap (KB/M) or 24 px face-button disc in Xbox colours (A green, B red, X blue,
+  Y yellow) with the letter inside, so it reads without colour. Verb 18 px/600. Gap 20 px between items.
+  - Sailing: `WASD` Sail · `Space` Anchor · `C` Crew · `J` Journal · `Enter` Chat · `Esc` Menu.
+  - Docked at a counter: `E` Talk is inserted first and highlighted (Paper chip) until used.
+  - Inside a screen: the bar shows that screen's prompts (e.g. `E` Sell all · `Esc` Back) and the world HUD hides.
+  - Every item is also a mouse button (hover = Ink Glass chip, click = same action). Gamepad shows pad glyphs.
+  - Settings → "Action bar": Full (default) · Context only (hides the always-there verbs, keeps `E` Talk and
+    screen prompts) · Off.
+- **Activity log + chat** (bottom-left, directly above the action bar, 440 px wide, grows upward to 6 lines/168 px):
+  - Idle: no box. A new line appears on an Ink Glass backing, stays 12 s, then fades over 1 s. When the last line
+    fades, nothing is left on screen.
+  - Hover, `L` or D-pad up: the box opens at Ink Glass 70% showing the last 20 lines (scrolls), with tabs
+    `All · Crew · Chat`. It closes on mouse-out / `L` again / 4 s without hover.
+  - Lines are 18 px, 24 px leading, max 2 lines each, wrapped; crew lines start with the crew name in bold (never
+    colour alone).
+  - **Log events (BUILT, solo)**: first catch of each species this trip ("Pip landed a Mackerel"), new species
+    ("· new" suffix + journal), Uncommon+ catch, hold half and full, region entered, discovery seen, sale total,
+    hull bought, crew hired, cosmetic earned, whale pod ping, crew stopped fishing (left `ZoneId`). Routine catches are **not** logged (with
+    3 crew that would be a line every ~8 s); the cargo `+1` covers them.
+  - Rate cap: ≤1 new line per 3 s; queued lines of the same type merge ("Mabel and Tomo landed Sardines").
+  - **Chat (MOCK-UP ONLY, D3)**: `Enter` opens a 32 px input row at the bottom of the open box; Esc closes; player
+    lines show the name in bold + text; chat lines follow the same 12 s fade. Rate/length values: doc 06.
+- **Hint pill** (onboarding / swell toast, doc 02 rule 8): bottom-centre, 72 px above the screen edge, Ink Glass,
+  20 px text, max one on screen.
+- **Footprint**: persistent elements (cargo, Shells, compass, action bar) ≈ 46k px² = 2.2% of 1920×1080
+  (§Formulas F4). The first draft's persistent HUD was ≈ 7.5%.
 
-### Harbour screens (Docked)
-Walk/sail into the counter trigger → prompt "E / (A) Talk". Click 1 opens screen; click 2 sells / buys. Purchases ≥ 100 Shells add one confirm click (doc 05, D8).
-```
-FISHMONGER (bean 900x600)                       SHIPWRIGHT (bean 900x600)
-+--------------------------------------+        +----------------------------------------+
-| (portrait) "Fine catch today!"       |        | (portrait) "What'll it be, captain?"   |
-| Sardine     x12   @ [BaseValue] =  N |        | [icon] Bigger Hold  Hold_2   [cost] (Buy)|
-| Mackerel    x9    @ ...          =  N |        | [icon] Second Hand  Crew_2   [cost] (Buy)|
-| ...  (scroll if >6 rows)             |        | [icon] Keel  "Push through the swell"  |
-|--------------------------------------|        |        Opens: R2_Swells   [cost] (Buy)|
-| Total: 1,240 Shells   (Sell all)     |        | owned = stamp "Fitted"; short = greyed |
-|                       (Close)        |        |  + "Need N more Shells" (no nag)       |
-+--------------------------------------+        +----------------------------------------+
-```
-- Sell is all-or-nothing in prototype (PROPOSED — no per-fish micro-management, P1). Prices from doc 05, no
-  dynamic pricing (brief §12). Fish shown as inked cel icons (P5).
-- Upgrade rows: max 4 (doc 05 owns ids/costs). The gate upgrade names the place it opens (P3: "opens places").
-- Buy (doc 05 owns, D8): purchases < 100 Shells (`Hold_2` 60, `Crew_2` 90) = 1 click, no confirm; purchases ≥ 100 Shells (`Keel` 250, `Hold_3` 300) = Buy + one confirm pom ("Fit the Keel for 250 Shells?" Fit / Not yet). No undo.
-- Wireframe note: on the `Keel` and `Hold_3` rows, (Buy) opens the confirm pom (Collar Crimson, rule 1) over the shipwright bean; `Hold_2` and `Crew_2` rows buy immediately.
+### Harbour: one place, one verb (owner UX pass, D9)
+The harbour has one place for each job, so the player's mental map is the quay itself: **Fishmonger** sells,
+**Shipyard** fits and paints the boat, **Inn crew board** hires. None of these screens shows another one's job.
+Walking or sailing into a counter trigger puts `E` Talk first in the action bar. Screens are Paper panels, the world
+is dimmed 30%, and the action bar shows the screen's own prompts. Depth: selling ≤2 clicks; hiring ≤2 (+1 confirm
+when ≥100); buying a fitted-ready item ≤2 (+1 confirm when ≥100; doc 05, D8). Close is always `Esc` / bar Back,
+with no ✕ button.
 
-### Crew panel (`C`) and Discovery journal (`J`)
+#### Fishmonger — sell only (paper 600×420)
 ```
-CREW (bean 760x420)                              JOURNAL (bean 760x520)
-+---------------------------------------+        +--------------------------------------+
-| [#1 dummy] Mabel [swatch] "Hums, taps foot" |  | Fish seen 7/11   Places 2/5          |
-|        Fishing · Steady hands         |        | [cel] Sardine  R1   [silhouette] ??? |
-| [#2 dummy] Pip   [swatch] "Waves at gulls"  |  | [cel] Old Wreck  R1 "seen 14 min"    |
-| [#3 dashed] Tomo — comes with Crew_2  |        | tabs: (Fish) (Places)                |
-+---------------------------------------+        +--------------------------------------+
++------------------------------------------------+
+| Fishmonger                     "Fine catch!"   |
+|------------------------------------------------|
+| [fish] Sand sprat      ×9     2    18          |
+| [fish] Harbour mackerel×6     3    18          |
+| [fish] Blue wrasse     ×3     5    15  · new   |
+| ...  rows 40 px, 20 px text, scroll after 6     |
+|------------------------------------------------|
+| 20 fish                      Total 71 Shells   |
+|                               [ Sell all ]     |
++------------------------------------------------+
+ action bar: [E] Sell all   [Esc] Back
 ```
-Crew panel is read-only at sea; the 3rd slot comes from `Crew_2` at the shipwright (D5, doc 05). Flavour lines
-describe poses/idle actions, never faces (D7). Efficiency shown as words
-("Steady hands" etc.; mapping in doc 04), not a number, to avoid optimisation framing (P3). Journal is a "seen"
-list only (00 §3 OUT); undiscovered = flat silhouettes.
+- All-or-nothing sale (PROPOSED, P1). Prices from 04/05, fixed (brief §12). Fish as inked cel icons 28 px.
+- After the sale the panel becomes a 1.5 s summary ("+71 Shells", count-up 0.6 s), then closes itself. Click skips.
+- Empty hold: rows replaced by "Nothing to sell yet", button disabled.
 
-### Chat and encounter ping — MOCK-UP ONLY (CONFIRMED owner D3: not built)
+#### Shipyard — fit and paint (full-screen view, docs 11)
+The one screen that takes over the frame, because the boat itself is the interface.
 ```
-CHAT (bottom-left above crew, bean 520x220)      PING (compass + world)
-| Ana: whales by the lighthouse!   |              compass: (o) whale glyph + "Whale pod 240 m"
-| Kai: omw                         |              world: ink ripple ring on twos at source
-| [Type message... 140 chars] (Send)              expiry: ring thins over last 20 s, glyph fades
++------------------------------------------------------------------------------------------------+
+| Shipyard        ( Fit ) ( Paint ) ( Decor )                                  [shell] 286        |
+|                                                                                                 |
+|   [ 3D boat, 3/4 view, slow turntable; slots drawn as         | Hull                           |
+|     inked outlines on the deck: S S M (Skiff) / S S M M L +   |  ( Skiff · owned )  ( Cutter 180) |
+|     keel mount (Cutter). Fitted items are the real models. ]  |--------------------------------|
+|                                                               | Shed & catalogue               |
+|   Load  [==============------]  180 / 200 kg                  |  [ic] Fish crate  S 40 kg  shed |
+|   Hold 32 → 26 · Crew 2 → 3        <- delta line, changes only|  [ic] Bunk  S 60 kg  40   (Buy) |
+|   "20 kg too heavy for the Skiff"  <- reason line when blocked|  [ic] Swell keel  keel 220 kg 70|
+|                                                               |      Needs a keel mount (Cutter)|
+|                                                     [Cancel] [Done] |
++------------------------------------------------------------------------------------------------+
+ action bar: [Click] Pick  [Drag] Fit  [R] Remove  [Tab] Next tab  [Esc] Cancel  [Enter] Done
 ```
-Purpose: paper-test props for doc 06's protocol; draw as printed cards. Rules to carry into a build: Enter opens
-input, Esc closes; chat fades after 10 s; mute per player in hangout list; ping subtitle "Whale pod spotted —
-NE, 240 m" (text callout, colourblind-safe glyph shape). Rate/length/expiry values: doc 06.
-**Solo whale ping state (BUILT; loop-1 ruling 5)**: offline `IEncounterBroadcast` local timer (first 10–15 min,
-then every 20–30 min; doc 06) fires the same compass marker, world ripple, subtitle and expiry — with **no chat
-line** and no sender name. Reward = journal entry only. This is the only ping UI implemented in the prototype.
+- **Layout**: boat preview left ~60% (orbit with RMB, no zoom needed); right rail 560 px: Hull row, then one list
+  that merges owned items in the shed and items for sale (price + Buy). Items that cannot fit right now still show,
+  with the reason in words.
+- **Fitting**: drag an item onto a slot, **or** click/A the item then click/A a slot (keyboard/gamepad path).
+  Invalid slots dim and show the reason on hover. A fitted item clicked on the boat offers Remove (to shed).
+- **Load bar** is the only meter: Cocoa fill on cream, numeric `180 / 200 kg`, and the over-limit part drawn as a
+  hatched overflow + words (never colour alone).
+- **Delta line** shows only values that change. No stat sheet, no DPS-style comparisons (P3).
+- **Buying** from the list: < 100 Shells = one click (Buy → shed → auto-proposes a slot, accept with one click);
+  ≥ 100 (Cutter, DeepHold, bow ornaments) = Buy + one confirm (doc 05, D8). Hulls: Buy + confirm, then "Switch
+  to the Cutter?" is the same confirm ("Buy and switch").
+- **Done** commits and saves; **Cancel** reverts every pending fit (purchases stay — they are already in the shed).
+- **Paint tab**: same preview; right rail has part tabs (Hull · Trim · Sail · Pattern) with a 4-column grid of 56 px
+  swatches. Hover = live preview with a brush wipe. Locked swatches show a price or the discovery that earns them
+  ("Seen the Marigold wreck"). Owned = free to apply.
+- **Decor tab** (doc 11 §Decor): the boat shows its decor points as small rings (Skiff 5, Cutter 7: masthead, roof,
+  rail, bow/figurehead, stern), and only in this tab. Click or press A on a ring: the rail lists the objects that fit
+  that point (owned first, then price or "Seen: …"). Hover previews the object in place, click places it, R removes it
+  to the decor chest. The selected ring is drawn solid with its label; the others stay as quiet outlines.
+  Boat name is edited on the stern name board point (Cutter) or the name field at the bottom of the Decor rail.
+
+#### Inn crew board — hire (paper 640×370)
+```
++--------------------------------------------------+
+| Crew board                          Berths 2 / 3  |
+|--------------------------------------------------|
+| [#1 Mabel]  [#2 Pip]   [ empty berth ]           |
+|--------------------------------------------------|
+| Looking for a boat:                              |
+| [dummy] Tomo   "Points at whales before anyone"  |
+|         Steady hands · 50 Shells      ( Hire )   |
++--------------------------------------------------+
+ action bar: [E] Hire   [Esc] Back
+```
+- Shows the crew aboard as small dummies with names and slot numbers, plus the free berths (from 11's Bunks).
+- No berth free: Hire disabled + "No free bunk. The shipyard can fit one." This is a pointer, not a nag, and it
+  is not repeated elsewhere.
+- One-off hire fee, no wages (00 §3). Candidates: Tomo only in prototype (D5). Crew waiting ashore (berth removed)
+  are listed here as "Waiting at the Inn" and re-board automatically when a berth is free.
+
+#### Crew panel (`C`, at sea, paper 520×330)
+Read-only roster: per crew a 36×48 dummy + slot number + name 20 px + state glyph and word 18 px (rod "Fishing",
+cup "Resting", dots "Not in a fishing spot") + efficiency as words (04 mapping), never a number (P3). Flavour lines
+describe poses, never faces (D7). This and the crew board are the only crew UI (no HUD list).
+
+#### Discovery journal (`J`, paper 720×400)
+Tabs Fish · Places; "seen" list only (00 §3 OUT); undiscovered = flat silhouettes; counts shown as "7 of 11 seen".
+Earned cosmetics show a small stamp on the entry that unlocked them (11).
+
+#### Pause menu and settings (`Esc` at sea; previously missing)
+Paper 360×420 column at the left, settings panel 720×500 beside it, over the dimmed world (the game keeps running behind it in solo; nothing
+is lost by pausing). Items: Resume · Settings · Companion window (F9) · Controls · Quit to desktop. Settings tabs:
+Display (UI scale 80–150%, HUD fade, Action bar Full/Context/Off), Audio, Controls (rebind, glyph style),
+Accessibility (text scale, reduce motion/flashes, hints off, Ink Glass opacity 70–85%). Each change previews live.
+
+### Encounter ping and chat — MOCK-UP ONLY except the solo whale ping (CONFIRMED owner D3)
+- **Ping**: Beacon Amber whale glyph on the compass + subtitle under the compass "Whale pod · NE · 240 m" (18 px,
+  6 s) + one log line + world ink ripple ring on twos at source. Expiry: ring thins over last 20 s, glyph fades.
+- **Chat**: lives in the activity log box (above), never a separate window. Mute per player in the hangout list.
+- **Solo whale ping (BUILT; loop-1 ruling 5)**: offline `IEncounterBroadcast` local timer (first 10–15 min, then
+  every 20–30 min; doc 06) fires the same compass marker, subtitle, ripple and a log line with no sender name.
+  Reward = journal entry only. This is the only ping UI implemented in the prototype.
 
 ### Onboarding — first 10 minutes (target first sale ≤8 min, H1)
+The action bar already shows every key, so hints only explain *why*, never *which key*.
+
 | t (min) | Moment | UI behaviour |
 |---|---|---|
-| 0:00 | Docked, crew wave (named cels) | Hint bean: "W/S throttle · A/D steer" (gamepad glyphs if pad) |
-| 0:45 | Leave harbour | Hint fades on first throttle; compass highlights region name once |
-| 1:30 | Enter R1 `ZoneId` | Crew glyph → rod; one-line hint "Your crew fishes on their own. Enjoy the view." |
-| ~1:42 | First catch (12 s after zone entry, doc 04) | Catch pop (cel fish) + cargo bar fill; journal toast "New fish seen" (2 s, once/species) |
-| ~5:56 | Hold full | Crew → cup; hint "Hold full — head home to sell" with harbour arrow on compass (once) |
-| ~6:41 | Docked (45 s back) | Counter prompt pulses once; Fishmonger → Sell all |
-| ~6:56 | First sale (≈ 6.9 min, doc 01 owns) | Shells +N pop; hint "The shipwright can fit upgrades" (once) |
-| ~7–10 | Shipwright | Show Keel row with "Opens: R2_Swells"; mention `F9` companion mode once |
+| 0:00 | Docked, crew wave on deck | Hint pill: "Sail out to find fish" (action bar shows `WASD` Sail) |
+| 0:45 | Leave harbour | Hint fades on first throttle; region name shows once |
+| 1:30 | Enter R1 `ZoneId` | Hint: "Your crew fishes on their own. Enjoy the view." |
+| ~1:42 | First catch (12 s after zone entry, doc 04) | Cargo `+1`; log "Mabel landed a Sardine · new" |
+| ~5:56 | Hold full | Cargo "Full"; log "Hold full, crew's resting"; hint "Head home to sell" + harbour marker pulses once |
+| ~6:41 | Docked (45 s back) | Action bar inserts `E` Talk (highlighted) |
+| ~6:56 | First sale (≈ 6.9 min, doc 01 owns) | Shells `+N`; log sale total; hint "The shipyard can fit a bigger hold" (once) |
+| ~7–10 | Shipyard | Fish hold auto-proposed into the M slot; Swell keel row reads "Needs a keel mount (Cutter) · opens The Swells"; mention `F9` companion mode once |
 Rules: each hint shows once, max 1 on screen, dismiss on action or 8 s; "Hints off" in settings. No tutorial gates.
 
 ### States and Transitions
-HUD state follows `PhaseKey`: `Sailing`/`Returning` → full HUD; `Docked` → HUD + counter prompts; `Selling`
-→ HUD hidden, screen open (shipwright is a sub-screen of `Selling`). `ViewMode = Compact` (overlay, not a
-`PhaseKey`) → doc 08 bar only. Screens stack depth ≤1 (no screen opens another).
+HUD state follows `PhaseKey`: `Sailing`/`Returning` → world HUD + sailing bar; `Docked` → world HUD + `E` Talk;
+`Selling` → world HUD hidden, screen open, bar shows screen prompts (Fishmonger, Shipyard and crew board are sub-screens of `Selling`).
+`ViewMode = Compact` (overlay, not a `PhaseKey`) → doc 08 window only. Screens stack depth ≤1 (a confirm dialog
+is not a screen).
 
 ### Interactions with Other Systems
-Reads: 04 (`CargoLoad`, `CargoCapacity`, crew state, names), 05 (`Shells`, prices, `UpgradeId` costs),
-03 (`RegionId`, discoveries, `TransitionBand`), 01 (`PhaseKey`), 06 (paper chat/ping rules), 08 (`ViewMode`).
-Writes: sell/buy requests to 05; settings to 07.
+Reads: 04 (`CargoLoad`, `CargoCapacity`, `OnFishLanded`, crew state, names), 05 (`Shells`, prices, `ItemId`/`HullId`
+costs, hire fee), 03 (`RegionId`, discoveries, `TransitionBand`), 02 (`BoatSpeed`, throttle notch, `Anchored`, stall toast),
+01 (`PhaseKey`), 06 (paper chat/ping rules), 08 (`ViewMode`). Writes: sell/buy requests to 05; settings to 07.
 
 ## Formulas
-- **Cargo fill %** = `CargoLoad / CargoCapacity` × 100, bar width = 260 px × fill. Example 28/40 → 70% → 182 px.
-- **UI scale** `S = clamp(ViewportHeight / 1080 × UserTextScale, 0.75, 2.0)`; text px = 32 × S, never < 28 at
-  S = 1. Example 1440p, UserTextScale 1.0 → S 1.33 → body 43 px.
+- **F1 Cargo fill** = `CargoLoad / CargoCapacity`; bar fill width = 120 px × fill × S. Example 26/32 → 0.81 → 98 px.
+- **F2 UI scale** `S = clamp(ViewportHeight / 1080 × UIScale, 0.75, 2.0)`, `UIScale` 0.8–1.5 (default 1.0); every px
+  in this doc is multiplied by S. Text px = base × S. Examples: 1440p, 1.0 → S 1.33 → body 27 px; 4K, 1.0 → S 2.0 →
+  body 40 px; 1080p, 1.25 → body 25 px. At `UIScale` < 1.0 text may go below the 18 px floor by player choice
+  (XAG 101 allows smaller at the player's discretion); the default never does.
+- **F3 Ink Glass contrast**: composite C = α·Ink + (1−α)·B. Worst case B = white `#FFFFFF`, α = 0.70 →
+  C ≈ `#6E6876`(sRGB 112/104/118, L ≈ 0.15) → cream `#FFF6E3` (L ≈ 0.92) ratio (0.97)/(0.20) ≈ **4.9:1** ≥ 4.5:1.
+  α = 0.62 gives ≈ 3.9:1 and fails, so 0.70 is the floor.
+- **F4 HUD footprint** = Σ(persistent plate areas) / (1920×1080). Cargo 232×40 (9.3k) + Shells 140×40 (5.6k) +
+  compass 420×28 (11.8k) + action bar ≈ 610×32 (19.5k) = 46.2k px² → **2.2%**. Budget ≤3% (Tuning Knob).
+- **F5 Log line rate** (why routine catches are not logged): catches/min = Σ crew rate = 2.5 × 3 = 7.5/min → one
+  line every 8 s, above the ≤1 per 3 s cap and well above a "calm" rate. Logged events average ≈ 1 per 40 s in
+  the 45-min H1 session estimate (≈ 11 species firsts + 4 half/full + ~4 sales + regions/discoveries/pings).
 - **Ping distance label** = round(distance_m / 10) × 10 m; hide when <20 m.
 
 ## Edge Cases
-- Hold full while in Harbour: cup glyph, no hint. · Buy with insufficient Shells: button disabled + "Need N more".
-- All upgrades owned: shipwright says "She's ship-shape" ; rows stamped "Fitted".
-- Sell with empty hold: Sell all disabled, label "Nothing to sell".
-- Crew slot empty (3rd slot before `Crew_2`): dashed dummy outline + "#3 — comes with Crew_2".
-- Solo whale ping fires while a harbour screen is open: marker queues until the screen closes, if not yet expired.
+- Hold full while in Harbour: cargo shows "Full", no hint, no log line repeat.
+- Buy with insufficient Shells: button disabled + "Need N more". Sell with empty hold: Sell all disabled, "Nothing to sell".
+- Everything owned and fitted: the Shipyard list says "She's ship-shape"; owned rows read "Fitted" or "In the shed".
+- No 3rd crew yet: the crew panel lists only hired crew; the crew board shows an empty berth only once a Bunk is fitted (11).
+- Log line arrives while a screen is open: it queues and shows (≤3 lines, merged) when the screen closes.
+- Log box open (hovered) when lines expire: they stay listed in the open box; the 12 s fade only applies when closed.
+- Solo whale ping while a harbour screen is open: marker queues until the screen closes, if not yet expired.
+- Action bar wider than the space left of the speed readout (UIScale 1.5 at 1080p ≈ 915 px): bar drops `Esc` Menu
+  and `Enter` Chat first (both still work), never wraps to two rows.
 - Gamepad disconnected mid-screen: glyphs switch to KB/M on next input; no pause.
-- Ultrawide 21:9: HUD anchors to 16:9 safe centre ±10% (PROPOSED); 4:3 not supported.
+- Ultrawide 21:9: HUD anchors to the 16:9 safe centre ±10% (PROPOSED); 4:3 not supported.
 - Opening journal during swell push-back: allowed; the boat is already throttled by doc 02.
 
 ## Dependencies
-Hard: 04, 05, 03, 01, 09 (hex tokens, fish/crew cels), 08. Paper: 06. Each must list 10 as a consumer.
+Hard: 04, 05, 11, 03, 02, 01, 09 (hex tokens, fish/crew cels), 08. Paper: 06. Each must list 10 as a consumer.
 
 ## Tuning Knobs
 | Knob | Default | Safe range | Affects |
 |---|---|---|---|
+| `UIScale` | 1.0 | 0.8–1.5 | all HUD/screen size (F2) |
 | `HudFadeDelay` | 8 s | 4–20 s | calm vs at-a-glance |
-| `HudFadeAlpha` | 0.4 | 0.2–1.0 | visibility of HUD |
-| `UserTextScale` | 1.0 | 0.85–1.5 (floor 28 px holds) | readability |
+| `HudFadeAlpha` | 0.4 | 0.2–1.0 | visibility of cargo/Shells/compass when idle |
+| `InkGlassAlpha` | 0.70 | 0.70–0.85 (never lower, F3) | HUD plate legibility vs see-through |
+| `LogLineLife` | 12 s | 6–30 s | how long log/chat lines stay |
+| `LogMaxLines` | 6 | 3–8 | log box height when idle |
+| `LogRateCap` | 1 per 3 s | 1 per 2–6 s | log calm |
+| `ActionBarMode` | Full | Full / Context / Off | prompts on screen |
+| `HudFootprintBudget` | 3% | 2–5% | review gate for adding HUD elements |
 | `HintDuration` | 8 s | 5–15 s | onboarding pace |
-| `ChatFade` (mock) | 10 s | 5–30 s | chat clutter |
 
 ## Visual/Audio Requirements
-Motion: pop 110% → 100% over 3 drawings, press squash 92%, ≤200 ms; transitions = pom iris/halftone wipe.
-Sounds: soft paper "pap" on open, wooden knock on buy, coin-shell rattle on sale; no alarm sounds.
-Flash rule: ≤3 luminance flashes/s.
+Motion: values fade/slide 6–12 px over ≤200 ms; `+1` rise 12 px / 0.8 s; button press 96%; no bounce or overshoot on
+HUD (screens may pop 104% → 100% over 3 drawings). Sounds: soft paper "pap" on screen open, wooden knock on buy,
+coin-shell rattle on sale; log lines are silent; no alarm sounds. Flash rule: ≤3 luminance flashes/s.
 
 ## Game Feel
 Sell all = one satisfying rattle + numbers counting up 0.6 s (skippable by click). Nothing waits on the player.
+The HUD should feel like it is barely there: a captain should be able to take a clean screenshot at any time by
+just not touching anything for 8 s (fade) or pressing `H`.
 
 ## UI Requirements
 ### Input map
 | Action | KB/M | Gamepad (Xbox labels) |
 |---|---|---|
 | Throttle / steer | W/S, A/D | LT/RT, Left stick |
-| Anchor | Space | B |
+| Anchor | Space | B (Open Q 1: 02 says Y) |
 | Camera orbit / zoom | RMB drag / wheel | Right stick / RS click cycle |
-| Interact (counter) | E | A |
+| Interact (counter) / confirm | E | A |
 | Crew / Journal | C / J | View → tabs |
+| Activity log open | L or hover | D-pad up |
+| Chat (mock) | Enter | — (POST-PROTOTYPE on-screen keyboard) |
 | Companion mode | F9 | Hold View 0.6 s |
 | Hide HUD | H | D-pad down |
-| Chat (mock) | Enter | — (POST-PROTOTYPE on-screen keyboard) |
-| Menu / back | Esc | Menu / B |
-All remappable (Enhanced Input user mappings). No fishing action exists on any device (P2).
+| Menu / back | Esc | Menu / B (in screens) |
+All remappable (Enhanced Input user mappings); the action bar always shows the current binding. No fishing action
+exists on any device (P2).
 
 ### Accessibility baseline
-- [x] Keyboard-only and gamepad-only complete the full H1 loop (focus ring: 4 px Aubergine outline).
-- [x] Text: 32 px body, 28 px floor, `UserTextScale` up to 1.5; ink on cream ≥13:1.
-- [x] Not colour alone: cargo full (icon+text), crew identity (name + slot number, colour swatch is extra), crew
-  state (glyph), ping (shape + text), buy state (stamp/label).
-- [x] Colourblind: no red/green pairs; validate with Deuteranopia/Protanopia/Tritanopia filters.
-- [x] Subtitles/captions: ping callouts and crew one-liners as text; audio-only cues get a caption.
-- [x] Reduce flashes / Reduce motion toggles (disable pop scale, halftone → cut). Remap all inputs.
-- [x] UI scales 720p–4K via `S`; hold-to-confirm never required.
+- [x] Keyboard-only and gamepad-only complete the full H1 loop (focus ring: 2 px Wisteria outline + 2 px offset).
+- [x] Text: body 20 px, floor 18 px at 1080p (XAG 101 PC minimum), `UIScale` up to 1.5; ink on cream ≥13:1;
+  cream on Ink Glass ≥4.5:1 over any background (F3).
+- [x] Not colour alone: cargo full (icon+word), crew identity (name + slot number, crew panel), crew state (glyph +
+  word), ping (shape + text), buy state (stamp/label), pad glyphs (letter inside the disc).
+- [x] Colourblind: no red/green pairs carry meaning; validate with Deuteranopia/Protanopia/Tritanopia filters.
+- [x] Subtitles/captions: ping callouts and crew barks also go to the activity log as text.
+- [x] Reduce flashes / Reduce motion toggles; Action bar off; Hints off; remap all inputs.
+- [x] UI scales 720p–4K via `S`; hold-to-confirm never required; mouse targets ≥ 32×32 px (WCAG 2.2 target ≥24).
+
+## References (owner UX pass research)
+- Xbox Accessibility Guideline 101 — text size: 18 px PC / 26 px console body height at 1080p, player-adjustable.
+  https://learn.microsoft.com/gaming/accessibility/xbox-accessibility-guidelines/101
+- Contextual prompts: show inputs when they are relevant rather than as always-on instruction text.
+  https://medium.com/the-acagamic-tip-tuesday/the-acagamic-tip-tuesday-17-contextual-prompts-9d9fe0d13b13 ·
+  https://gamedeveloper.com/design/implementing-context-sensitive-commands-in-ui-design
+- MMO chat/log practice: per-line decay timers and fading the whole window beat a low-alpha background, which hurts
+  legibility. https://na.finalfantasyxiv.com/uiguide/communication/communication-chat/chat_transparency.html ·
+  https://us.forums.blizzard.com/en/wow/t/way-to-make-chat-window-less-transparent/1921105
+- Minimal/diegetic HUD in calm games (Sable: the ship is the interface; A Short Hike; Dorfromantik).
+  https://fictionhorizon.com/25-games-with-minimal-ui-that-still-guide-you/ ·
+  https://80.lv/articles/how-dorfromantik-expands-its-cozy-world-through-minimalist-design
 
 ## Cross-References
-00 §5 A5, §9 D1–D7; reviews/loop-1 rulings 5–7; 01 onboarding/loop; 03 regions/discoveries; 04 crew names/states; 05 prices/upgrades;
-06 paper chat/ping; 08 compact bar; 09 colour tokens and cels. Effort (PROPOSED): HUD 3 d, harbour screens 3 d,
-crew+journal 2 d, onboarding hints 2 d, input/remap 2 d, accessibility pass 2 d, solo whale ping UI 1 d = **~15 dev-days** (chat and multiplayer ping: 0, paper only).
+00 §5 A5, §9 D1–D7; reviews/loop-1 rulings 5–7; 01 onboarding/loop; 02 speed/anchor/toast; 03 regions/discoveries;
+04 crew names/states/`OnFishLanded`; 05 prices; 11 fitting/cosmetics; 06 paper chat/ping; 08 companion window; 09 colour tokens
+and cels. Effort (PROPOSED): HUD 3 d, action bar + rebinding glyphs 2 d, activity log 2 d, harbour screens (fishmonger, crew board) 2 d, Shipyard UI in doc 11,
+crew+journal 2 d, onboarding hints 1 d, input/remap 2 d, accessibility pass 2 d, solo whale ping UI 1 d =
+**~17 dev-days** + Shipyard (doc 11) (multiplayer chat and ping: 0, paper only).
 
 ## Acceptance Criteria
-1. (H1) Sell all reachable in ≤2 clicks from counter prompt; upgrades < 100 Shells (`Hold_2`, `Crew_2`) in ≤2 clicks; upgrades ≥ 100 Shells (`Keel`, `Hold_3`) in exactly 3 (open, Buy, one confirm; doc 05) — verified by click count.
+1. (H1) Sell all reachable in ≤2 clicks from the `E` Talk prompt; items < 100 Shells bought in ≤2 clicks; upgrades
+   ≥ 100 Shells (`Cutter`, `DeepHold`) in exactly 3 (open, Buy, one confirm; doc 05); hiring in ≤2 — verified by click count.
 2. (H1) ≥75% of testers reach first sale ≤8 min with hints only (no verbal help).
 3. Full loop playable with keyboard only and with gamepad only (QA run each).
-4. All text ≥28 px at 1080p at `UserTextScale` 1.0; contrast ≥4.5:1 everywhere (≥13:1 body).
-5. Cargo-full, crew state and ping are distinguishable in greyscale screenshots.
-6. No UI prompt repeats more than once per trigger event in a 45-min session (log check).
-7. Each crew entry can be identified in a greyscale screenshot by name and slot number alone (D7).
-8. (H1/H3) Solo whale ping shows compass marker, subtitle and ripple with no chat line; first fire 10–15 min in.
-9. (H3, paper) Chat/ping cards let ≥50% of paper-test players state ping direction and distance within 60 s.
+4. At 1080p, `UIScale` 1.0: all text ≥18 px body height (measured descender-to-ascender, XAG 101); contrast ≥4.5:1
+   everywhere, checked on a white-sky and a dark-dusk screenshot.
+5. Persistent HUD footprint ≤3% of the frame at 1080p (sum of plate bounds in a Sailing screenshot, F4).
+6. No crew information on the Sailing HUD; in a 5-min sailing screenshot sequence the only HUD elements are cargo,
+   Shells, compass, action bar and (transiently) log lines, speed readout, hint pill.
+7. Every action bar item triggers its action when clicked, and its glyph updates within 1 frame of switching
+   KB/M ↔ gamepad.
+8. Log: no more than 1 new line per 3 s; routine catches never logged; every line gone 13 s after arrival when the
+   box is closed (log + capture check).
+9. No UI prompt repeats more than once per trigger event in a 45-min session (log check).
+10. Each crew entry in the crew panel can be identified in a greyscale screenshot by name and slot number alone (D7).
+11. (H1/H3) Solo whale ping shows compass marker, subtitle, ripple and one log line with no sender; first fire 10–15 min in.
+12. (H3, paper) Chat/ping cards let ≥50% of paper-test players state ping direction and distance within 60 s.
 
 ## Open Questions
-1. ~~`Keel` UpgradeId~~ CLOSED: `Keel` is now in §6.
-2. ~~Buy without confirm~~ CLOSED by D8: doc 05 owns it; one confirm for purchases ≥ 100 Shells (`Keel`, `Hold_3`), one click below.
-3. ~~Crew count~~ CLOSED by D5: 2 crew at start (Mabel, Pip), 3 with `Crew_2` (Tomo); HUD supports 2–3.
-4. Should crew efficiency ever be shown as a number (e.g. tooltip)? PROPOSED: no.
-5. Should the HUD auto-fade at all (calm) or stay fixed (glanceable)? Validate by H1 observer notes.
+1. Gamepad anchor: Y (02) vs B (10). B also means Back inside screens; Y avoids the overlap. Owner to pick.
+2. Should the action bar fade to 60% after `HudFadeDelay` like the corner HUD? PROPOSED: no (it is the
+   discoverability surface); revisit after H1 observer notes.
+3. Should crew efficiency ever be shown as a number (e.g. tooltip)? PROPOSED: no.
+4. Should the HUD auto-fade at all (calm) or stay fixed (glanceable)? Validate by H1 observer notes.
 
 ## Interface values
 | Value | Number / name | Consumer |
 |---|---|---|
-| HUD elements | Cargo bean, Shells bean, Crew bean (2–3 dummy icons + slot # + name + state glyph), Compass+region strip | 04, 05, 03 |
-| Harbour depth | ≤2 clicks; screens 900×600 at 1080p | 05 |
-| Type | body 32 px, floor 28 px at 1080p; scale 0.75–2.0 | 08, 09 |
-| Colour tokens | #FFF6E3, #6B4A35, #33273B (+Wisteria, Collar Crimson from 09) | 08, 09 |
-| Crew glyph states | fishing / resting / not-in-zone | 04 |
-| Region label switch | at 50% of `TransitionBand` | 03 |
+| HUD elements | Cargo plate, Shells plate, Compass strip (+region on entry), Action bar, Activity log/chat, Speed readout (transient), Hint pill | 02, 04, 05, 03 |
+| HUD footprint | ≤3% persistent at 1080p (2.2% as specified) | review gate |
+| Surfaces | Ink Glass = `#33273B` @ 70%, r10, cream text; Paper = `#FFF6E3`, 2 px `#6B4A35`, r14 | 08, 09 |
+| Type (1080p, S = 1) | screen title 28/600 · heading 22/600 · body 20/500 · small 18/500 (floor) · glyph 13–15/800 inside keycaps · mock fonts Fredoka (titles) + Nunito (all else); doc 09 picks the shipping pair | 08, 09 |
+| Harbour places | Fishmonger (sell) 600×420 · Shipyard (fit + paint) full-screen, rail 560×880 · Inn crew board (hire) 640×370 · confirm 420×190; ≤2 clicks + 1 confirm ≥100 | 05, 11, 04 |
+| Crew panel / Journal | 520×330 / 720×400 | 04, 03 |
+| Crew glyph states | fishing / resting / not-in-zone (crew panel + log) | 04 |
+| Log events | species first per trip, new species, Uncommon+, hold half/full, region, discovery, sale, hull bought, crew hired, cosmetic earned, ping, crew left zone | 04, 03, 05, 06, 11 |
+| Region label | on crossing 50% of `TransitionBand`, 6 s | 03 |
+| Speed readout | kn + 5 notches on change, 3 s; anchor icon while `Anchored` | 02 |
 | Ping distance | rounded to 10 m, hidden <20 m (MP mock; solo whale ping built) | 06, 03 |
-| Crew icon | 48×64 px dummy, colour triplet from 09, `CrewId` name | 04, 09 |
+| Crew icon | 36×48 px dummy in crew panel, colour triplet from 09, `CrewId` name | 04, 09 |
 | Companion toggle | F9 / hold View 0.6 s | 08 |

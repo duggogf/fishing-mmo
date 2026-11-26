@@ -8,17 +8,17 @@
 
 ## Summary
 
-The loop is: sail out → crew auto-fishes → hold fills → sail home → sell → buy an upgrade → (Keel) → Region 2 opens.
+The loop is: sail out → crew auto-fishes → hold fills → sail home → sell → fit the boat / hire crew → (Cutter + Keel) → Region 2 opens.
 It is modelled as a small `PhaseKey` state machine with pacing targets — first fish ≤ 2 min, first sale ≤ 8 min, Region 2 at
 20–35 min — and a 5-step, text-light first-time user experience (FTUE).
 
-> **Quick reference** — Layer: `Core` · Priority: `MVP` · Key deps: `02 Sailing`, `03 World`, `04 Crew & Fishing`, `05 Economy`, `07 Persistence`, `10 HUD`
+> **Quick reference** — Layer: `Core` · Priority: `MVP` · Key deps: `02 Sailing`, `03 World`, `04 Crew & Fishing`, `05 Economy`, `07 Persistence`, `10 HUD`, `11 Ship Fitting`
 
 ## Overview
 
 This doc owns the shape of a session and the `PhaseKey` values every other system reads. It does not own any numbers
 except pacing targets; rates and prices come from 04/05, distances from 02/03. Each trip is 5–9 min; a 45-min playtest
-contains ~5 trips, every upgrade, and a first look at Region 2.
+contains ~5 trips, every gate-path purchase (FishHold, Bunk + Tomo, Cutter + Keel), and a first look at Region 2.
 
 ## Player Fantasy
 
@@ -30,8 +30,8 @@ companion mode. The player should never feel they are *working*; the crew works.
 
 ### Core Rules
 
-1. **CONFIRMED (brief §2)** Loop order: sail → auto-fish → cargo fills → return → sell to NPC → buy upgrade → unlock region → discover → socialise.
-2. **CONFIRMED (brief §12; 00 P2)** The player's verbs are sail, look, choose, sell, upgrade, chat. No fishing verb.
+1. **CONFIRMED (brief §2)** Loop order: sail → auto-fish → cargo fills → return → sell to NPC → upgrade the boat (Shipyard fit/buy, Inn hire; D9) → unlock region → discover → socialise.
+2. **CONFIRMED (brief §12; 00 P2)** The player's verbs are sail, look, choose, sell, upgrade (fit, buy, hire), chat. No fishing verb.
 3. **CONFIRMED (brief §5, §12)** Progress happens only while the app runs; nothing accrues while closed; no catch-up on load.
 4. **CONFIRMED (owner D2)** A full hold pauses fishing; it never stops sailing, and nothing auto-returns or auto-sells.
 5. **PROPOSED** Returning home is always the player's choice. A full hold shows one calm prompt and a harbour compass marker; no timer, no decay, no repeated nag.
@@ -43,14 +43,15 @@ companion mode. The player should never feel they are *working*; the crew works.
 | PhaseKey | Entry condition | Fishing (doc 04) | Exit |
 |---|---|---|---|
 | `Docked` | boat inside harbour dock trigger, speed < 0.5 m/s | none (Harbour) | throttle out of trigger → `Sailing`; interact counter → `Selling` |
-| `Selling` | fishmonger or shipwright UI open (while `Docked`) | none | close UI → `Docked` |
+| `Selling` | Fishmonger, Shipyard or Inn crew board screen open (while `Docked`) | none | close UI → `Docked` |
 | `Sailing` | outside dock trigger AND `CargoLoad < CargoCapacity` | `Fishing` if in `ZoneId`, else `NotInZone` | hold fills → `Returning`; enter dock → `Docked` |
 | `Returning` | outside dock trigger AND `CargoLoad == CargoCapacity` | paused (`HoldFull`) | enter dock → `Docked` |
 
 **CONFIRMED (00 §6, loop-1 ruling 6)** `Compact` is NOT a `PhaseKey`; it is a `ViewMode` overlay (doc 08). The underlying loop phase
 (`Sailing`/`Returning`/`Docked`) is retained and resumes unchanged; doc 04 keeps reading it. `Returning` describes the hold state, not
-the boat's heading — a player may keep exploring while `Returning`. The shipwright is a sub-screen of `Selling`, not its own
-`PhaseKey` (avoids coining a new shared name; 00 §5 diagram's "Shipwright" step = `Selling`).
+the boat's heading — a player may keep exploring while `Returning`. The Fishmonger, Shipyard (doc 11) and Inn crew board
+(doc 04) are sub-screens of `Selling`, not their own `PhaseKey`s (avoids coining new shared names; the old 00 §5 diagram's
+"Shipwright" step = `Selling`; D9).
 
 ### FTUE (first session, PROPOSED, ≤ 1 line of text per step)
 
@@ -60,14 +61,14 @@ the boat's heading — a player may keep exploring while `Returning`. The shipwr
 | 2 Cast off | player throttles | Controls hint (doc 02/10) fades after first 5 s of steering | 0:45 |
 | 3 First fish | enter R1 `ZoneId` | Crew starts fishing; first fish pop at 12 s; cargo bar appears with a single pulse | ~1:42 |
 | 4 Hold full | `CargoLoad == CargoCapacity` | Crew lounge; bubble "Hold's full — fishmonger's open whenever you are." Harbour marker | ~5:56 |
-| 5 First sale & shop | dock + Sell all | +~84 Shells; shipwright highlighted once; `Hold_2` (60) is affordable; Keel card shows R2 on the horizon | ~6:56 |
+| 5 First sale & shop | dock + Sell all | +~84 Shells; Shipyard highlighted once; `FishHold` (60) is affordable and auto-proposed into the Skiff's M slot; Keel row reads "Needs a keel mount (Cutter) · opens The Swells" (doc 10/11) | ~6:56 |
 
 If the player idles at the dock 60 s at step 1, Pip points toward the shallows once (no repeats).
 
 ### Interactions with Other Systems
 
-02 (dock trigger, speed), 03 (`ZoneId`, region entry for telemetry), 04 (`HoldFull`, first fish), 05 (sale, purchases, `Keel`),
-07 (autosave on every `Selling` exit and every 60 s), 08 (`ViewMode`), 10 (PhaseKey → HUD/prompts).
+02 (dock trigger, speed), 03 (`ZoneId`, region entry for telemetry), 04 (`HoldFull`, first fish, hiring), 05 (sale, purchases, gate cost),
+07 (autosave on every `Selling` exit and every 60 s), 08 (`ViewMode`), 10 (PhaseKey → HUD/prompts), 11 (Shipyard fitting, `fit_change`).
 
 ## Formulas
 
@@ -77,7 +78,7 @@ If the player idles at the dock 60 s at step 1, Pip points toward the shallows o
 |---|---|---|---|---|
 | FTUE_Dock | min | 0.75 | 0.25–2 | ASSUMPTION – telemetry `session_start→leave_dock` |
 | TravelOut_R1 / TravelBack_R1 | min | 0.75 / 0.75 | 0.75–1.5 | CONFIRMED (03, loop-1 ruling 2: 45 s each way); upper range = wandering |
-| CargoCapacity | units | 20 | 16–28 | doc 05 |
+| CargoCapacity | units | 20 | 16–28 | doc 11 (Skiff 14 + `FishCrate` 6) |
 | CatchRatePerMin | fish/min | 5.0 | 5.0 | doc 04 (2 crew, R1) |
 | AvgSpeedFactor | float | 0.9 | 0.85–1.0 | doc 04 F2 |
 | Sell | min | 0.25 | 0.1–0.5 | doc 05 |
@@ -87,7 +88,7 @@ Worked example: 0.75 + 0.75 + 20/(5.0 × 0.9) + 0.75 + 0.25 = 0.75 + 0.75 + 4.44
 Range: best (all minimums, factor 1.0, cap 20) = 0.25+0.75+4.0+0.75+0.1 = 5.85; slow (2 min dock, 1.5 travel each way, factor 0.85) = 2+1.5+4.71+1.5+0.5 = 10.2 min → exceeds 8. Slack to the 8-min target is 1.06 min (~15%).
 **ASSUMPTION – validate by H1 `first_sale` ≥75% ≤ 8 min.** If it fails, first lever: start `CargoCapacity` 20 → 16 (−0.9 min).
 
-**F2 — Time to Region 2**: defined in doc 05 F4. Modelled A 29.5 / B 19.8 / C 28.3 / D 25.2 min across purchase orders; target 20–35 (H1).
+**F2 — Time to Region 2**: defined in doc 05 F4 (catalogue from 11 F4). Modelled A' 27.8 / B 19.8 / C 28.3 / D 25.2 min across purchase orders; target 20–35 (H1).
 
 ### Pacing targets (session)
 
@@ -95,14 +96,14 @@ Range: best (all minimums, factor 1.0, cap 20) = 0.25+0.75+4.0+0.75+0.1 = 5.85; 
 |---|---|---|---|
 | First fish | ≤ 2 min from spawn (≤ 15 s after zone entry) | 1:42 (0.75 + 0.75 min + 12 s) | 04 offsets |
 | First sale | ≤ 8 min (≥75% players) | 6.9 min | 05 cap / 04 rate |
-| First upgrade | ≤ 8 min | 6.9 min (`Hold_2`) | 05 cost |
-| R2 unlock | 20–35 min median | 19.8–29.5 min (+20% slack → 24–35.4; path A on the edge, accepted by ruling 2) | 05 `Keel` cost |
+| First purchase | ≤ 8 min | 6.9 min (`FishHold`, 60) | 05 price |
+| R2 unlock | 20–35 min median | 19.8–28.3 min (+20% slack → 23.8–34.0; path A' 27.8) | 05 gate cost (`Cutter` + `Keel`) |
 | Trip length | 5–10.5 min | 4.96–10.44 (R2 incl. 143/137 s crossing) | 04/05 |
-| Playtest 45 min | ≥ 1 R2 trip | path A: R2 sale at 40 min | — |
+| Playtest 45 min | ≥ 1 R2 trip | path A': R2 sale at 38.2 min | — |
 
 ### Session structure (PROPOSED)
 
-- **Playtest session (45 min)**: FTUE → 4 R1 trips → Keel → 1–2 R2 trips; compact mode suggested once by facilitator, not by game.
+- **Playtest session (45 min)**: FTUE → 4 R1 trips (one Skiff fitting choice) → Cutter + Keel → 1–2 R2 trips; compact mode suggested once by facilitator, not by game.
 - **Typical home session (ASSUMPTION – 20–60 min)**: 1 trip ≈ one "song" of attention; any stopping point is safe because cargo and Shells persist and nothing decays.
 - **Companion session**: drift in a zone (D2); hold fills in ~4–8 min, then crew rest indefinitely. Natural cap = one hold per check-in; it rewards glancing back, never punishes absence.
 
@@ -117,15 +118,16 @@ Range: best (all minimums, factor 1.0, cap 20) = 0.25+0.75+4.0+0.75+0.1 = 5.85; 
 | Quit during `Selling` | Last completed transaction saved; on load spawn `Docked`. |
 | Toggle compact while `Returning` | Overlay; boat drifts (D2); still `HoldFull`; no auto-return. |
 | Boat enters dock while full and moving fast | `Docked` requires speed < 0.5 m/s; marker says "slow down to dock" (doc 02 owns docking). |
-| Player reaches R2 edge without Keel | Swell push-back (doc 02/03); phase unchanged; Keel card hint at shipwright. |
+| Player reaches R2 edge without Keel | Swell push-back (doc 02/03); phase unchanged; Keel row hint in the Shipyard ("Needs a keel mount (Cutter) · opens The Swells"). |
 | FTUE on loaded save | FTUE flags saved; completed steps never repeat. |
 
 ## Dependencies
 
-02, 03, 04, 05 (hard); 07 (save phase + FTUE flags); 08 (`ViewMode`); 10 (prompts). Each of those docs must reference
+02, 03, 04, 05, 11 (hard); 07 (save phase + FTUE flags); 08 (`ViewMode`); 10 (prompts). Each of those docs must reference
 `PhaseKey` from here. Effort: **~3 dev-days** (phase state machine 1, FTUE prompts 1, telemetry CSV 1). **ASSUMPTION.**
 
-**Telemetry (local CSV, 00 §2)**: `session_start`, `leave_dock`, `first_fish`, `hold_full`, `sale(Shells)`, `purchase(UpgradeId)`,
+**Telemetry (local CSV, 00 §2)**: `session_start`, `leave_dock`, `first_fish`, `hold_full`, `sale(Shells)`, `purchase(ItemId|HullId)`,
+`fit_change(HullId, Fitting)` (on Shipyard Done when the loadout changed; doc 11 AC 6), `hire(CrewId)`,
 `region_enter(RegionId)`, `viewmode_change`, each with session seconds. Derived: time-to-first-sale, time-to-R2.
 
 ## Tuning Knobs
@@ -151,12 +153,12 @@ produce a visible fish; the first 7 min must produce a purchase.
 
 ## UI Requirements
 
-HUD reads `PhaseKey`: `Sailing` cargo bar + Shells + region name; `Returning` adds harbour marker; `Docked` shows counter
-prompts; `Selling` is ≤ 2 clicks deep (doc 10). No quest log, no checklist.
+HUD reads `PhaseKey` (doc 10): `Sailing` cargo + Shells + compass + action bar (region name on entry only); `Returning` adds
+the harbour marker pulse; `Docked` inserts `E` Talk in the action bar; `Selling` is ≤ 2 clicks deep (doc 10). No quest log, no checklist.
 
 ## Cross-References
 
-00 §1, §2 H1, §5 A1, §6, §9 D2/D3/D5 · 02 · 03 · 04 · 05 · 07 · 08 · 10.
+00 §1, §2 H1, §5 A1, §6, §9 D2/D3/D5/D9 · 02 · 03 · 04 · 05 · 07 · 08 · 10 · 11.
 
 ## Acceptance Criteria
 
@@ -171,7 +173,7 @@ prompts; `Selling` is ≤ 2 clicks deep (doc 10). No quest log, no checklist.
 
 1. Should the hold-full prompt also appear in companion mode, or only as a cargo-bar colour change (doc 08)?
 2. ~~`Compact` in `PhaseKey`~~ — CLOSED (loop-1 ruling 6): `ViewMode` overlay only.
-3. Is a 45-min playtest long enough to judge R2, given modelled entry at ~29.5 min (path A)?
+3. Is a 45-min playtest long enough to judge R2, given modelled entry at ~27.8 min (path A')?
 
 ## Interface values
 
@@ -180,7 +182,7 @@ prompts; `Selling` is ≤ 2 clicks deep (doc 10). No quest log, no checklist.
 | `PhaseKey` | `Docked`, `Selling`, `Sailing`, `Returning` (`Compact` is a `ViewMode`, not a PhaseKey) | 01 |
 | First fish target / model | ≤ 2 min from spawn / 102 s | 01 (lever 04) |
 | First sale target / model | ≤ 8 min / 6.9 min | 01 (levers 04/05) |
-| R2 unlock target / model | 20–35 min / A 29.5, B 19.8, C 28.3, D 25.2 min | 01 (lever 05) |
+| R2 unlock target / model | 20–35 min / A' 27.8, B 19.8, C 28.3, D 25.2 min | 01 (lever 05, catalogue 11) |
 | Dock speed threshold | 0.5 m/s | 01 (agree with 02) |
 | Autosave | on every `Selling` exit + 60 s | 07 |
 | FTUE flags in `PlayerProgress` | `FtueStep` (int 0–5) | 07 |

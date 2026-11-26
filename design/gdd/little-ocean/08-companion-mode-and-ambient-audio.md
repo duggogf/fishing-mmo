@@ -22,21 +22,23 @@ When the hold is full they sit back and wait for me. No hurry." Ambient company,
 
 ### Core Rules
 1. **PROPOSED — Fixed size 512×320 DIP** (device-independent px; 16:10). **08 owns this value** (loop-1 must-fix 3);
-   it is the source for 09's companion render profile (no 480×270 anywhere). Rationale: 320 tall fits a 256-tall
-   scene plus a 64-tall control bar that honours the 28 px type floor (09/§UI); 480×270 left only ~40 px for controls.
+   it is the source for 09's companion render profile (no 480×270 anywhere). Rationale: 16:10 gives the boat and crew
+   room to read; 320 tall fits a 280-tall scene plus a 40-tall control bar with doc 10's desktop type (body 18 px floor
+   at 1080p, XAG 101 PC; owner D9) and 32×32 buttons (doc 10 mouse-target minimum). The earlier 64-tall bar served the
+   superseded 28 px console floor.
 2. **Wireframe (DIP)**:
 ```
 +------------------------------------------------------------ 512 ------+
-| [drag zone: whole scene area, 512x256]                    (pin) (x?)  |  <- pin/close? see Open Q2
+| [drag zone: whole scene area, 512x280]                    (pin) (x?)  |  <- pin/close? see Open Q2
 |                                                                       |
 |        ~ ~  painted sea + sky (StaysLayer)  ~ ~                       |
 |                 __/\__   <- boat, 3/4 view, fills ~35% width          |
 |      Mabel Pip (Tomo)    <- blocky crew dummies (ActsLayer, D7), names on hover |
 |     ~~~ wake/splash on twos ~~~                                       |
 +-----------------------------------------------------------------------+
-| [fish] [====== cargo bar 260 ======] 38/40  | (Pin) (Mute) (Expand)   |  <- control bar 64 tall
+| [fish] [====== cargo bar 260 ======] 30/32  | (Pin) (Mute) (Expand)   |  <- control bar 40 tall
 +-----------------------------------------------------------------------+
-  bar: 16 px pad | icon 32 | bar 260x20 | count 28 px text | 3 poms 44x44, 8 px gap
+  bar: 8 px pad | icon 24 | bar 260x12 | count 18 px text | 3 buttons 32x32, 8 px gap | 8 px pad (≈ 494 of 512)
 ```
 3. **Contents (CONFIRMED brief §9)**: animated ocean, boat + crew, cargo status, minimal controls. Region name is
    shown only as hover tooltip on the scene (PROPOSED — keeps scene clean). No Shells, no chat, no ping UI.
@@ -64,7 +66,7 @@ When the hold is full they sit back and wait for me. No hurry." Ambient company,
 10. **Multi-monitor & DPI**: size is in DIP; physical = DIP × monitor scale (125% → 640×400; 150% → 768×480).
     Re-evaluate scale on `WM_DPICHANGED` when dragged between monitors. Never larger than 40% of the work area;
     if it would be, fall back to 100% scale (edge case: 4K at 300% on small laptop).
-11. **Input in compact**: mouse only on the three poms + drag + double-click; keyboard `F9`, `M` (mute),
+11. **Input in compact**: mouse only on the three buttons + drag + double-click; keyboard `F9`, `M` (mute),
     `P` (pin) when focused; gamepad: View-hold to expand only. Window must not steal focus on appear.
 
 ### States and Transitions
@@ -83,7 +85,7 @@ unchanged. Compact.HoldFull mirrors §6 `HoldFull` (owner 04).
 `BoatSpeed = 0`; **CONFIRMED (owner D6, doc 04)**: `BoatSpeedFactor` = 1.0 at speed 0, so compact fishing runs
 at the full doc-04 rate. 02 Sailing: throttle/decel, `CompactHold` / `PushVec` rule.
 03 Regions: `RegionId`, `TransitionBand` blend alpha for audio. 09 Art: compact render profile co-owner.
-10 UI: shared tokens and poms. 07 Persistence: autosave continues on its normal cadence in compact.
+10 UI: shared tokens (Paper surface) and buttons. 07 Persistence: autosave continues on its normal cadence in compact.
 
 ## Formulas
 **Render profile cost (PROPOSED).** `GPU_c ≈ GPU_f × (P_c / P_f) × (F_c / F_f) × K_post + G_fixed`
@@ -112,7 +114,7 @@ Example: Gulls Base 0.6, W_R1 1.0, W_R2 0.2, alpha 0.5 → 0.6 × 0.6 = 0.36 bef
 
 ## Dependencies
 Hard: 04 (fishing tick, cargo-full state, rate at speed 0), 02 (decel, swell), 09 (compact render settings,
-crew rest idle), 10 (tokens, poms, type floor), 07 (settings + autosave). Soft: 03 (`TransitionBand` alpha,
+crew rest idle), 10 (tokens, buttons, 18 px type floor), 07 (settings + autosave). Soft: 03 (`TransitionBand` alpha,
 R2 weather). Doc 04 and 09 must list 08 as a dependent.
 
 ## Tuning Knobs
@@ -152,8 +154,9 @@ Enter: pom-iris close to compact (≤200 ms, 3 drawings), window pops 110% → 1
 offset so they never move in unison. Bell is a single 1.2 s soft chime. Nothing flashes (≤3 flashes/s rule).
 
 ## UI Requirements
-Uses doc 10 tokens: Paper Cream bar, Cocoa 3 px frame scaled to 2 px at 512 width, Aubergine Ink text 28 px,
-poms 44×44 DIP (Fitts: ≥44 target). Tooltips on every pom. Cargo bar uses fill + numeric + full icon (not colour alone).
+Uses doc 10's Paper surface token (owner D9): Paper Cream `#FFF6E3` bar with a 2 px Cocoa `#6B4A35` frame, radius 14
+on the window corners, Aubergine Ink text 18 px/500 (doc 10 floor, desktop scale; scales with DIP), buttons 32×32 DIP
+(doc 10 mouse-target minimum; WCAG 2.2 ≥24), icons 24. Tooltips on every button. Cargo bar uses fill + numeric + full icon (not colour alone).
 
 ## UE5 implementation notes (all "verify")
 - Window resize/mode: `UGameUserSettings::SetFullscreenMode(EWindowMode::Windowed)` + `SetScreenResolution` +

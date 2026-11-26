@@ -52,7 +52,7 @@ you roll through the same swell and the Thunder Arch booms at you through the dr
         |  /^\ (-450,80)                            D3 Turtle Rock @@  |
  y=   0 |##########^^######___mouth (0,0)___##################(620,180)|  coastline
         |          headland  |B1 B2 B3 B4 B5 B6 B7 B8|  Harbour basin   |
- y=-160 |                    [Fishmonger]  [Shipwright]  quay          |
+ y=-160 |               [Fishmonger]  [Inn]  [Shipyard/slipway]  quay   |
         +--------------------------------------------------------------+
        x=-800                          x=0                       x=+800
 ```
@@ -62,13 +62,17 @@ you roll through the same swell and the Thunder Arch booms at you through the dr
    current, no wall, no damage). Rationale: small enough to whitebox, big enough for 3–4 min trips (H1 pacing).
 2. **PROPOSED — `Harbour`** (`RegionTier` 0): basin x ∈ [−120, 120], y ∈ [−160, 0], 40 m breakwater mouth at (0,0).
    8 berths `B1–B8` at x = −70 + 20·i, y = −130, bow north (boat 8 m × 3 m, 20 m spacing). Quay boardwalk
-   y −160..−140 with Fishmonger (−90, −150) and Shipwright (90, −150). Open "mingle water" x ±80, y −110..−40.
+   y −160..−140 with one place per verb (**CONFIRMED (owner D9)**, screens in 10): Fishmonger (−90, −150, sell),
+   Inn with the crew board on its quay wall (0, −155, hire; PROPOSED position: centre of the quay, behind B4/B5) and
+   Shipyard with a slipway running into the basin's east corner (90, −150, fit/buy/paint; run by the Shipwright NPC;
+   the yard view shows the boat on the slipway, doc 11). Open "mingle water" x ±80, y −110..−40.
    No fishing in the harbour (**CONFIRMED (00 §5 A1)**). Harbour speed cap per 02.
 3. **PROPOSED — `R1_Shallows`** (`RegionTier` 1): x ±700, y 0..500 (0.70 km²). Always clear, warm palette.
 4. **PROPOSED — `TransitionBand`** y 500..650, **width 150 m**. Blend weight `w = s((y − 500)/150)` drives palette,
    haze, audio bed, cosmetic motion and swell (02 F4). Region-name label flips at y = 575.
 5. **PROPOSED — `R2_Swells`** (`RegionTier` 2): x ±700, y 650..1300 (0.91 km²). Full swell everywhere, overcast,
-   drizzle cycle. `GateRequirement(R2_Swells) = Keel` (**CONFIRMED (owner D1)**; price in 05).
+   drizzle cycle. `GateRequirement(R2_Swells) = Keel` (**CONFIRMED (owner D1)**; price in 05). `Keel` is an `ItemId`
+   that fits only the `Cutter`'s keel mount; the gate checks `HasKeel` = Keel fitted (doc 11, D9).
 6. **PROPOSED — `ZoneId`s**: `Z_R1` = y 0..650 minus a 60 m radius around the mouth (keeps the harbour lane
    calm); `Z_R2` = y 650..1300. **Species switch is hard at y = 650**, not blended: an un-Keeled boat stalls at
    y ≈ 607 (02 F6), so it can see but never fish R2 species. Rationale: the gate stays honest for 05's curve.
@@ -84,7 +88,7 @@ you roll through the same swell and the Thunder Arch booms at you through the dr
 
 | Distance to band | Channel | Signal |
 |---|---|---|
-| Harbour | Dialogue | Shipwright idle line: "Those northern swells bounce a little keel like a cork." |
+| Harbour | Dialogue | Shipwright (Shipyard) idle line: "Those northern swells bounce a little Skiff like a cork. A Cutter with a keel, now..." |
 | Anywhere in R1 | Sky/palette | North horizon slate-teal, low cloud; R2 sea stacks painted in haze |
 | ≤ 300 m | Audio | Low surf roar fades in (0 → −12 dB at y = 500) |
 | y = 500 | Landmark | Swell Buoys (inked red/cream cel), bob grows with `w`; bells clank softly |
@@ -93,7 +97,9 @@ you roll through the same swell and the Thunder Arch booms at you through the dr
 
 **Discoveries** (**CONFIRMED (brief §3)** some require region/weather/equipment). Entering the trigger radius
 adds a "seen" journal entry + 4 s toast + inked ping ripple; reward is the entry itself (**PROPOSED**, P3; any
-Shells reward is 05's call, named `DiscoveryReward`).
+Shells reward is 05's call, named `DiscoveryReward`). **CONFIRMED (owner D9)**: some discoveries also unlock a cosmetic
+(doc 11 §Cosmetics: Marigold wreck → "Wreck-wood" hull paint; whale pod seen → "Whale-song sail"; all R1 places seen →
+"Shallows pennant"), shown as a stamp on the journal entry + one log line. Never a stat.
 
 | Id | Name | Pos (x,y) | Radius | Requirement | Hook |
 |---|---|---|---|---|---|
@@ -123,6 +129,8 @@ Weather: `Clear ↔ Drizzle` (R2 render/audio only). Discovery: `Unseen → Seen
 - **02**: provides `SwellStrength(p)`, `SwellDir`, world-edge bands, berth transforms.
 - **04 (A1)**: provides `ZoneId`, `RegionTier`; species table per `ZoneId`; no fishing in `Harbour`.
 - **05**: `GateRequirement = Keel`; `KeelPrice`, optional `DiscoveryReward`.
+- **11**: `HasKeel` (Keel fitted on the `Cutter`) is the gate flag; discovery `Seen` events unlock cosmetics.
+- **10**: harbour places (Fishmonger, Inn crew board, Shipyard) are counter triggers at the quay positions in rule 2.
 - **06 (paper)**: room bounds = full map; spawn = berths B1–B8 by join order; `E_WhalePod` lane.
 - **07**: journal `Seen` flags; on load inside land/blocked geometry, snap to nearest free berth.
 - **08/09**: palette + audio bed per `RegionId`, crossfaded by `w`; drizzle layer.
@@ -163,7 +171,8 @@ Weather: `Clear ↔ Drizzle` (R2 render/audio only). Discovery: `Unseen → Seen
 ## Dependencies
 
 02 Sailing (bidirectional: 02 reads the field, 03 reads stall depth), 04 Crew (`ZoneId`), 05 Economy (`Keel`,
-`DiscoveryReward`), 06 Hangout (paper lane/bounds), 07 Persistence (journal, position), 08 Audio, 09 Art, 10 HUD.
+`DiscoveryReward`), 06 Hangout (paper lane/bounds), 07 Persistence (journal, position), 08 Audio, 09 Art, 10 HUD,
+11 Ship Fitting (`HasKeel` gate flag; discovery-earned cosmetics).
 
 ## Tuning Knobs
 
@@ -179,7 +188,7 @@ Weather: `Clear ↔ Drizzle` (R2 render/audio only). Discovery: `Unseen → Seen
 ## Visual/Audio Requirements
 
 - `StaysLayer` (painted): sea surface, coast, sea stacks, arch, lighthouse building, harbour town, sky, rain curtain.
-- `ActsLayer` (inked): Swell Buoys, Bell Buoy (it rings/lights), boats, vendors, whales, blowhole spout + whitecaps
+- `ActsLayer` (inked): Swell Buoys, Bell Buoy (it rings/lights), boats, vendors, Inn crew board, Shipyard slipway cradle, whales, blowhole spout + whitecaps
   + rain streaks as hard-edged VFX on twos (00 §1). Palettes per region owned by 09; R1 warm turquoise/sand,
   R2 slate-teal/cool grey, lerped by `w`.
 - Audio beds (08): Harbour gulls/rigging; R1 lapping waves; band + R2 surf roar and wind; drizzle patter layer.
@@ -196,7 +205,7 @@ Owned by 10.
 
 ## Cross-References
 
-00 §3, §5 A2, §9 D1/D3 · 02 (F4–F6) · 04 · 05 · 06 · 07 · 08 · 09 · 10.
+00 §3, §5 A2, §9 D1/D3/D9 · 02 (F4–F6) · 04 · 05 · 06 · 07 · 08 · 09 · 10 · 11.
 Effort (solo UE5): whitebox coast/islands 3 d, region/zone function + `w` blend MPC 2 d, discoveries + journal
 trigger 1.5 d, drizzle cycle 1.5 d, buoys + lighthouse beam 1 d ⇒ **~9 dev-days** (art dressing in 09).
 
@@ -213,7 +222,7 @@ trigger 1.5 d, drizzle cycle 1.5 d, buoys + lighthouse beam 1 d ⇒ **~9 dev-day
 
 1. **`RegionId` name**: §6 fixes `R2_Swells`, but owner D1 made R2 a swell region. This doc keeps the id and uses
    display name "The Rolling Swells"; reviewer to decide whether to rename to e.g. `R2_Swells`.
-2. **`UpgradeId` `Keel`** is a new shared name (02/03 propose it); reviewer to add to §6.
+2. ~~`Keel` shared name~~ — CLOSED (D9): `Keel` is an `ItemId` in 00 §6 (doc 11).
 3. Should `E_WhalePod` fire solo (local timer) given D3 makes multiplayer paper-only? A1/A4 to decide.
 4. `DiscoveryReward` in Shells (05) or journal-only? Recommend journal-only (P3: curiosity, not optimisation).
 
@@ -228,7 +237,8 @@ trigger 1.5 d, drizzle cycle 1.5 d, buoys + lighthouse beam 1 d ⇒ **~9 dev-day
 | `TransitionBand` | y 500–650, 150 m | 03 |
 | `R2_Swells` | y 650–1300, 0.91 km², Tier 2 | 03 |
 | `ZoneId` | `Z_R1` (y 0–650 minus 60 m mouth), `Z_R2` (y 650–1300) | 03 |
-| `GateRequirement(R2)` | `Keel` | 03 (id), 05 (`KeelPrice`) |
+| `GateRequirement(R2)` | `Keel` (`ItemId`, fitted on the `Cutter`; `HasKeel`) | 03 (id), 05 (`KeelPrice`), 11 (fit) |
+| Harbour places | Fishmonger (−90, −150) · Inn crew board (0, −155) · Shipyard slipway (90, −150) | 03 (screens 10) |
 | Berth → R1 / R2 edge / R2 proper | 45 s / 116 s / 143 s | 03 |
 | `PushMax`, `KeelResist`, stall y | 7.71 m/s, 0.85, ≈ 607 m | 02 |
 | Discoveries | 5 (3 R1, 2 R2) | 03 |

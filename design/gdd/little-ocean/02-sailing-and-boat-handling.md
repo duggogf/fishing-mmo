@@ -10,10 +10,10 @@
 
 An arcade, kinematic boat model (no physics sim, no fuel, no damage) with telegraph-style throttle, speed-scaled
 turning, a one-button anchor, soft harbour docking, and an orbit camera. Owns the **swell push-back model**
-(owner D1): a world-space drift velocity that stalls an un-upgraded boat inside the R2 swell and is mostly
-cancelled once the `Keel` upgrade is fitted. Never damages, never sinks, never takes control away.
+(owner D1): a world-space drift velocity that stalls a boat without a keel inside the R2 swell and is mostly
+cancelled once the `Keel` item is fitted on the `Cutter`'s keel mount (doc 11, D9). Never damages, never sinks, never takes control away.
 
-> **Quick reference** — Layer: `Foundation` · Priority: `MVP` · Key deps: 03 World (swell field, volumes), 05 Economy (`Keel` price), 04 Crew (`BoatSpeedFactor` consumer), 08 Companion (Compact hold), 10 HUD
+> **Quick reference** — Layer: `Foundation` · Priority: `MVP` · Key deps: 03 World (swell field, volumes), 05 Economy (`Keel` price), 11 Ship Fitting (`HasKeel`, hulls), 04 Crew (`BoatSpeedFactor` consumer), 08 Companion (Compact hold), 10 HUD
 
 ## Overview
 
@@ -39,8 +39,10 @@ When the boat meets the big northern swell it rises, slows, and is gently should
 4. **PROPOSED — Anchor** (key Space / gamepad Y): if `BoatSpeed ≤ 2 kn` it drops (2.0 s animation) and the boat is `Anchored` (BoatSpeed = 0, PushVec ignored). If faster, the boat brakes at 1.5 m/s² then anchors. Raising takes 2.0 s and resumes at notch `Stop`. Anchoring is allowed everywhere, including the swell band (cozy; no exploit, see Edge Cases).
 5. **PROPOSED — Harbour speed cap**: inside the `Harbour` region volume, target speed is clamped to 6 kn (3.09 m/s). Rationale: keeps berths readable for 8 boats; ~33 s to clear the basin.
 6. **PROPOSED — Docking**: within 25 m of a free berth at ≤ 3 kn, prompt "Moor (E)"; pressing it auto-glides the boat to the berth in 3.0 s (eased spline). `PhaseKey` → `Docked` (owned by 01). Casting off = any throttle input; the boat backs out 10 m automatically.
-7. **CONFIRMED (owner D1) — Swell push-back**: R2 has heavy swell that pushes small boats back, never damages them; the `Keel` upgrade lets the boat push through. Implemented as `PushVec` (Formulas F4–F6). The player always keeps steering and throttle.
-8. **PROPOSED — Soft turn-back message**: without `Keel`, if northward ground speed < 0.3 m/s for 3 s while `SwellStrength > 0`, play one crew bark + one HUD toast per sail-out: *"Swell's too big for our keel, Cap'n. The shipwright could fit a sturdier one."* No forced turn, no fade-out.
+7. **CONFIRMED (owner D1, D9) — Swell push-back**: R2 has heavy swell that pushes small boats back, never damages them; a fitted `Keel` lets the boat push through. `Keel` is an `ItemId` (doc 11) that only fits the `Cutter`'s keel mount; `HasKeel` = Keel fitted on the active hull. Implemented as `PushVec` (Formulas F4–F6). The player always keeps steering and throttle.
+8. **PROPOSED — Soft turn-back message**: without `Keel`, if northward ground speed < 0.3 m/s for 3 s while `SwellStrength > 0`, play one crew bark + one hint-pill toast per sail-out (doc 10): *"Swell's too big for us, Cap'n. A Cutter with a keel would push through."* No forced turn, no fade-out.
+12. **CONFIRMED (owner D9) — Hulls handle the same**: the `Cutter` (doc 11) uses every value in this doc unchanged in the prototype (same speeds, turn, anchor, 8 m reference length for camera/collision). Only its model and waterline offset differ (09, 11 F3; visual only). Hull-specific handling is an open question in 11.
+13. **Speed readout (doc 10 owns)**: the HUD speed readout (`kn` + throttle notches) appears only while the throttle changes and for 3 s after, plus an anchor icon while `Anchored`; it is not a permanent HUD element.
 9. **PROPOSED — Collision**: islands/rocks/quays are blocking. On contact the velocity component into the surface is removed, a 0.5 m/s rebound applied, a soft wooden "bonk" plays. No damage state exists (**CONFIRMED (brief §12)** no survival systems).
 10. **PROPOSED — Remote boats** (paper only, owner D3) are non-colliding ghosts; the local boat never collides with another player.
 11. **PROPOSED — Cosmetic motion**: heave/pitch/roll are visual-only on the mesh, never on the camera, scaled by region (F7). A "Reduce motion" accessibility toggle multiplies all amplitudes by 0.25.
@@ -49,7 +51,7 @@ When the boat meets the big northern swell it rises, slows, and is gently should
 
 | State | Enter when | Exit to | Notes |
 |---|---|---|---|
-| `Docked` | Moor completes | `Sailing` on throttle input | Boat locked to berth; selling/shipwright UI available (01/05) |
+| `Docked` | Moor completes | `Sailing` on throttle input | Boat locked to berth; Fishmonger, Shipyard and Inn crew board available (01/05/10/11) |
 | `Sailing` | Cast off / anchor raised | `Anchored`, `Docked`, `Stalled` | Normal model |
 | `Stalled` (sub-state) | Rule 8 condition | `Sailing` when northward speed ≥ 0.3 m/s or SwellStrength = 0 | Only drives the bark/toast; physics unchanged |
 | `Anchored` | Anchor dropped | `Sailing` after raise | Crew may still fish if inside a `ZoneId` (04) |
@@ -59,10 +61,10 @@ When the boat meets the big northern swell it rises, slows, and is gently should
 
 - **03 World**: reads `SwellStrength(p)` and `SwellDir` (analytic field defined in 03) and region volumes for harbour cap.
 - **04/01 Crew & loop**: publishes `BoatSpeed` (m/s, speed over water, excluding PushVec) and `GroundSpeed`; A1 derives `BoatSpeedFactor`. Anchored ⇒ BoatSpeed = 0.
-- **05 Economy**: `UpgradeId = Keel` sets `HasKeel = true`; price owned by 05 (`KeelPrice`).
+- **05 Economy / 11 Ship Fitting**: `HasKeel = true` when the `Keel` (`ItemId`) is fitted on the active hull (11 rule 5); recomputed on Shipyard Done. Price owned by 05 (`KeelPrice`, 70; gate cost with the `Cutter` = 250).
 - **07 Persistence**: saves position, heading, state (Docked/Anchored/Sailing). Load never restores speed (boat starts at `Stop`).
 - **08 Companion**: on Compact enter, state → `CompactHold`; camera switches to the fixed Compact framing (below).
-- **10 HUD**: throttle notch, speed in kn (ground speed), anchor icon, toast.
+- **10 HUD**: throttle notch, speed in kn (ground speed) shown only on throttle change + 3 s, anchor icon, toast (hint pill).
 
 ## Formulas
 
@@ -100,13 +102,14 @@ R1 `A_h = 0.15 m, A_r = 2°`; full swell no Keel `0.6 m, 8°`; full swell with K
 - **Window loses focus mid-sail (Full mode)**: boat keeps its notch (no input held). Not paused — the app is running (brief §5).
 - **Frame hitch (dt > 0.1 s)**: dt clamped to 0.1 s per substep, max 4 substeps, preventing tunnelling through quays.
 - **Collision while turning in place against a cliff**: pivot allowed; rebound pushes 0.5 m/s away so the boat unsticks.
+- **Keel unfitted / hull switched back to the Skiff** (doc 11): only possible while `Docked`, so `HasKeel` flips false in harbour; the next R2 attempt stalls as normal. Never strands a boat at sea.
 
 ## Dependencies
 
 | System | Direction | Contract |
 |---|---|---|
 | 03 World | reads | `SwellStrength(p)`, `SwellDir`, region volumes, berths |
-| 05 Economy | reads | `HasKeel` from `PlayerProgress.Upgrades` contains `Keel` |
+| 11 Ship Fitting (05 price) | reads | `HasKeel` = `Keel` present in `PlayerProgress.Fitting` of the `ActiveHull` (keel mount; Cutter only) |
 | 04 Crew / 01 Loop | provides | `BoatSpeed`, `GroundSpeed`, state (Anchored/Docked) |
 | 07 Persistence | provides | position, heading, boat state |
 | 08 Companion, 10 HUD | provides/reads | `CompactHold` state, Compact camera; HUD readouts |
@@ -138,11 +141,11 @@ R1 `A_h = 0.15 m, A_r = 2°`; full swell no Keel `0.6 m, 8°`; full swell with K
 
 ## UI Requirements
 
-Throttle notch ladder (5 pips), speed "9.7 kn" (ground speed), anchor button state, "Moor (E)" prompt, stall toast (once per sail-out, 5 s, subtitle-safe). Layout owned by 10.
+Throttle notch ladder (5 pips) and speed "9.7 kn" (ground speed), shown only while the throttle changes and for 3 s after (doc 10); anchor icon while `Anchored`; "Moor (E)" prompt (action bar `E`); stall toast (hint pill, once per sail-out, 5 s, subtitle-safe). Layout owned by 10.
 
 ## Cross-References
 
-00 §5 A2, §9 D1/D2/D3 · 03 (swell field, travel times) · 04/01 (`BoatSpeedFactor`) · 05 (`KeelPrice`) · 07 · 08 · 09 · 10.
+00 §5 A2, §9 D1/D2/D3/D9 · 03 (swell field, travel times) · 04/01 (`BoatSpeedFactor`) · 05 (`KeelPrice`) · 07 · 08 · 09 · 10 · 11 (`HasKeel`, Cutter).
 Estimated effort (solo UE5): movement component 3 d, swell/edge field 1 d, anchor + docking 1.5 d, camera incl. Compact 1 d, cosmetic motion 0.5 d ⇒ **~7 dev-days**.
 
 ## Acceptance Criteria
@@ -174,5 +177,6 @@ Estimated effort (solo UE5): movement component 3 d, swell/edge field 1 d, ancho
 | `KeelResist` | 0.85 → 1.16 m/s residual push | 02 |
 | Stall depth without Keel | y ≈ 607 m (107 m into band) | 02 |
 | `SwellStrength(p)`, `SwellDir` | smoothstep over y 500–650; (0,−1) | 03 |
-| `UpgradeId` `Keel` (= `GateRequirement` of R2) | id only | 02/03 (id), 05 (`KeelPrice`) |
+| `ItemId` `Keel` (= `GateRequirement` of R2); `HasKeel` = fitted on the `Cutter` | id only | 02/03 (id), 05 (`KeelPrice`), 11 (fit) |
+| Hull handling | `Skiff` and `Cutter` identical in prototype | 02 (hulls 11) |
 | `BoatSpeedFactor` | derived from `BoatSpeed` | 04/05 (A1) |

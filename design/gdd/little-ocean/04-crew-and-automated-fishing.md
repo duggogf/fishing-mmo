@@ -13,7 +13,7 @@ Named, visible crew members fish automatically whenever the app is running and t
 into the hold until `CargoLoad` reaches `CargoCapacity`; then fishing pauses (state `HoldFull`) until the player sells.
 There is no player fishing input of any kind.
 
-> **Quick reference** — Layer: `Core` · Priority: `MVP` · Key deps: `02 Sailing (BoatSpeed)`, `03 World (ZoneId, RegionTier)`, `05 Economy (BaseValue, upgrades)`, `07 Persistence`
+> **Quick reference** — Layer: `Core` · Priority: `MVP` · Key deps: `02 Sailing (BoatSpeed)`, `03 World (ZoneId, RegionTier)`, `05 Economy (BaseValue, prices)`, `11 Ship Fitting (CargoCapacity, CrewBerths)`, `07 Persistence`
 
 ## Overview
 
@@ -34,13 +34,25 @@ Submission). A full hold reads as "the crew's done for now, they're lounging" �
 
 1. **CONFIRMED (brief §2, §12)** No manual fishing. No input, button, timing or minigame affects catch. **CONFIRMED (00 P2)** no active-play bonus.
 2. **CONFIRMED (brief §5, §12; 00 §5 A1)** Crew fish **only while the app process is running** and the boat is inside a `ZoneId` (never in `Harbour`). **No offline fishing and no catch-up on load or on wake from sleep** (see Formula F4 dt clamp).
-3. **CONFIRMED (owner D4, D5, D7)** Crew are visible, named, faceless blocky cel dummies (look owned by doc 09) with idle and fishing animations. The starter boat has 2 `CrewSlot`s filled by `CrewId` Mabel and Pip; the `Crew_2` upgrade adds a 3rd `CrewSlot` and Tomo.
+3. **CONFIRMED (owner D4, D5, D7)** Crew are visible, named, faceless blocky cel dummies (look owned by doc 09) with idle and fishing animations. The starter boat has 2 `CrewSlot`s filled by `CrewId` Mabel and Pip; a 3rd `CrewSlot` comes from a fitted `Bunk` (doc 11) and Tomo is hired at the Inn crew board (§Hiring; owner D9 replaces the old `Crew_2` upgrade).
 4. **PROPOSED** Every `CrewMember` has exactly one stat, `Efficiency` (float, baseline 1.0). All prototype crew are 1.0. Traits are flavour text + idle-animation choice only (no mechanics). Rationale: 00 §3 OUT "crew levelling/traits beyond one efficiency stat".
-5. **CONFIRMED (00 §5 A1)** No wages, upkeep, morale, hunger or timers. Crew never leave.
+5. **CONFIRMED (00 §5 A1)** No wages, upkeep, morale, hunger or timers. Crew never leave (a crew member without a berth waits ashore, §Hiring).
 6. **CONFIRMED (owner D2)** When `CargoLoad == CargoCapacity` the boat enters `HoldFull`: all catch accumulation **stops** (nothing banks or overflows), crew switch to lounge idles, sailing is unaffected. Fishing resumes automatically once `CargoLoad < CargoCapacity` (i.e. after selling). Applies identically in `Full` and `Compact` `ViewMode`.
 7. **PROPOSED** 1 fish = 1 `CargoLoad` unit (00 §6). Fish never spoil (no survival systems, brief §12). Cargo persists through save/quit.
 8. **PROPOSED** Each landed fish calls `CatchRoll` on the species table of the boat's current region (F3). First catch of a `SpeciesId` adds a "seen" journal entry.
 9. **PROPOSED** Rarity tiers in prototype: `Common`, `Uncommon`, `UncommonPlus` (cap — 00 §5 A1). `IRareDropService` is **not** called by this system in prototype; **POST-PROTOTYPE** the catch event is the hook (`OnFishLanded(SpeciesId, RegionId)`).
+10. **CONFIRMED (owner D9)** `CargoCapacity` and `CrewBerths` are derived by doc 11 from the active hull and fitted items (11 F2); this doc only consumes them. `ActiveCrew = min(Hired, CrewBerths)`.
+
+### Hiring (Inn crew board) — CONFIRMED (owner D9); fee PROPOSED
+1. Crew are hired at the **Inn crew board** on the quay (doc 10 screen, doc 03 location) while `Docked`. Hiring is a
+   separate place from fitting: the Shipyard (doc 11) only provides berths (the `Bunk`).
+2. Prototype candidate: **Tomo** only (D5). Hire fee **50 Shells**, one-off, no wages (rule 5; price owned by doc 05).
+   Bunk 40 + hire 50 = 90 = the old `Crew_2` price, so crew-first pacing is unchanged (05 F4 path C).
+3. Hiring needs a **free berth** (`CrewBerths > Hired`). No free berth → Hire disabled with "No free bunk. The
+   shipyard can fit one." (doc 10). Hired crew get the next slot number (Tomo = slot 3) and board immediately.
+4. If a later refit lowers `CrewBerths` below `Hired` (Bunk unfitted, hull switch), the highest-slot crew member
+   **waits at the Inn**: listed on the crew board as "Waiting at the Inn", never lost, no refund needed, and re-boards
+   automatically the next time a berth is free while `Docked`. The Shipyard warns before Done ("Tomo will wait at the Inn").
 
 ### States and Transitions
 
@@ -61,8 +73,9 @@ Transitions: `NotInZone → Fishing` on entering a zone with free cargo; `Fishin
 |---|---|---|
 | 02 Sailing | in | `BoatSpeed` (m/s), `BoatMaxSpeed` (m/s) → `BoatSpeedFactor` |
 | 03 World | in | current `RegionId`, `RegionTier`, inside-`ZoneId` bool; in a `TransitionBand` the region with blend weight ≥ 0.5 supplies tier & species table |
-| 05 Economy | out/in | landed `SpeciesId` list → sale value via `BaseValue`; `Crew_2`, `Hold_2`, `Hold_3` change slots/capacity |
-| 07 Persistence | out | `CargoContents`, `CrewRoster`, `SpeciesSeen` in `PlayerProgress` |
+| 05 Economy | out/in | landed `SpeciesId` list → sale value via `BaseValue`; hire fee (50 Shells) debited by 05 |
+| 11 Ship Fitting | in/out | in: `CargoCapacity`, `CrewBerths` (from hull + fitted items, 11 F2); out: hired crew list (for berth guard) |
+| 07 Persistence | out | `CargoContents`, `CrewRoster` (hired crew + crew waiting ashore), `SpeciesSeen` in `PlayerProgress` |
 | 08 Companion / 10 HUD | out | `CargoLoad`, `CargoCapacity`, `HoldFull` flag, `OnFishLanded` event |
 | 09 Art | out | crew anim states (idle / fishing / haul / lounge) |
 
@@ -140,7 +153,7 @@ Row struct `FSpeciesRow { SpeciesId (FName), DisplayName (FText), RegionId, Rari
 |---|---|---|---|---|
 | Mabel | 1 | starter | 1.0 | Leans on the rail; idle = coils rope, lies on the cargo when the hold is full |
 | Pip | 2 | starter | 1.0 | Restless; idle = waves both arms at every passing boat |
-| Tomo | 3 | `Crew_2` (doc 05) | 1.0 | Steady; idle = points an arm toward whales/pings |
+| Tomo | 3 | hired at the Inn crew board, 50 Shells, needs a `Bunk` berth (§Hiring, D9) | 1.0 | Steady; idle = points an arm toward whales/pings |
 
 ## Edge Cases
 
@@ -158,13 +171,17 @@ Row struct `FSpeciesRow { SpeciesId (FName), DisplayName (FText), RegionId, Rari
 | Region species table empty / missing | No catch; log error once; crew show idle. |
 | Sell while catch progress partial | Progress kept; fishing resumes from it. |
 | Load from save | Offsets re-applied from F4; no saved progress. |
+| Hire with no free berth | Hire disabled, "No free bunk. The shipyard can fit one." No Shells taken. |
+| Bunk unfitted / hull switched with Tomo aboard | Tomo waits at the Inn (§Hiring 4); catch rate drops to 2 crew; re-boards when a berth is free while `Docked`. |
+| Hire with fish aboard / hold full | Allowed; Tomo starts fishing on the next zone entry with free cargo. |
 
 ## Dependencies
 
 - **02 Sailing** (hard): `BoatSpeed`, `BoatMaxSpeed`. 02 must list 04 as consumer of speed.
 - **03 World** (hard): `ZoneId` volumes, `RegionTier`, `TransitionBand` weights; 03 must list 04 as consumer.
-- **05 Economy** (hard, bidirectional): `BaseValue` lives here; upgrade effects defined in 05.
-- **07 Persistence**: saves `CargoContents (SpeciesId→count)`, `CrewRoster`, `SpeciesSeen`.
+- **05 Economy** (hard, bidirectional): `BaseValue` lives here; hire fee and item prices defined in 05.
+- **11 Ship Fitting** (hard, bidirectional): `CargoCapacity` and `CrewBerths` come from 11; 11 reads the hired crew list.
+- **07 Persistence**: saves `CargoContents (SpeciesId→count)`, `CrewRoster` (hired + waiting ashore), `SpeciesSeen`.
 - **08 / 10**: display only. **09**: crew cel spec. Effort: **~4 dev-days** (component 1.5, DataTable 0.5, anim hookup 1.5, tests 0.5). **ASSUMPTION.**
 
 ## Tuning Knobs
@@ -192,11 +209,12 @@ Haul anim 1.2 s; pop-up rises 40 px over 0.8 s and fades. `HoldFull` lounge must
 ## UI Requirements
 
 HUD (doc 10): `CargoLoad / CargoCapacity` bar, `HoldFull` label "Hold full — crew's resting", species pop-up name + Rarity colour (colourblind-safe, doc 10).
-Crew roster panel at shipwright: name, colour-swatch dummy icon (doc 10, D7), flavour line. No crew micro-management screens.
+Crew roster: at the Inn crew board (hire, berths, crew waiting ashore) and the read-only `C` crew panel at sea: name,
+slot number, colour-swatch dummy icon (doc 10, D7), flavour line. No crew list on the HUD (doc 10, D9). No crew micro-management screens.
 
 ## Cross-References
 
-00-direction §1, §5 A1, §6, §9 D2/D4 · 01 core loop (PhaseKey) · 02 (BoatSpeed) · 03 (ZoneId, TransitionBand) · 05 (BaseValue, upgrades) · 07 · 08 · 09 · 10.
+00-direction §1, §5 A1, §6, §9 D2/D4/D9 · 01 core loop (PhaseKey) · 02 (BoatSpeed) · 03 (ZoneId, TransitionBand, Inn) · 05 (BaseValue, prices) · 07 · 08 · 09 · 10 · 11 (capacity, berths).
 
 ## Acceptance Criteria
 
@@ -213,7 +231,7 @@ Crew roster panel at shipwright: name, colour-swatch dummy icon (doc 10, D7), fl
 
 1. ~~BoatSpeedFactor floor~~ — CLOSED (loop 1): 0.85 floor PROPOSED, validated by H1 (F2); 1.0 at speed 0 fixed for 08.
 2. ~~R2 RegionId~~ — CLOSED: §6 now uses `R2_Swells`.
-3. Should Tomo's hire scene be a tiny dockside moment (cost ~1 dev-day) or just appear on deck?
+3. Should Tomo's hire scene be a tiny dockside moment at the Inn (cost ~1 dev-day) or just appear on deck?
 4. Minimised-window ticking behaviour must be confirmed with doc 08/07 (UE background throttling).
 
 ## Interface values
@@ -222,7 +240,8 @@ Crew roster panel at shipwright: name, colour-swatch dummy icon (doc 10, D7), fl
 |---|---|---|
 | `BaseRate` R1 / R2 | 2.5 / 2.25 fish/min per Efficiency | 04 |
 | `CrewMember.Efficiency` | 1.0 (all prototype crew) | 04 |
-| `CrewSlot` count / `CrewId` | 2 at start (Mabel, Pip); 3 after `Crew_2` (adds slot + Tomo) — D5/D7 | 04 |
+| `CrewSlot` count / `CrewId` | 2 at start (Mabel, Pip); 3 with a fitted `Bunk` + Tomo hired (50 Shells, Inn) — D5/D7/D9 | 04 (berths 11, fee 05) |
+| `CargoCapacity` | consumed; 20 start, see 11 interface values | 11 |
 | `CatchRatePerMin` starter R1 | 5.0 (factor 1.0), 4.5 (avg 0.9) | 04 |
 | `BoatSpeedFactor` | 1.0 at s ≤ 0.6 (incl. speed 0 — 08 depends, D6); 0.85 at s = 1.0 | 04 (speeds from 02) |
 | Fishing sub-states | `NotInZone`, `Fishing`, `HoldFull` | 04 |

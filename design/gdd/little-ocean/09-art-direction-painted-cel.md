@@ -36,7 +36,7 @@ the crew and the bobbing buoys are the things that *do* something (affordance th
 
 | ActsLayer (inked two-tone cel, `#33273B` hull line, contact blob, after paint post) | StaysLayer (soft painting, unlined, Kuwahara, violet shadow, haze) |
 |---|---|
-| Player boat (hull, cabin, mast, pennant) · crew (2–3) · NPC fishmonger + shipwright · sell counter + shipwright board (interactable) · zone buoys and R2 swell-gate buoy (bob + react to boat proximity) · fish in catch pop · gulls (ambient, they move) · remote boats (spec only, D3) · `E_WhalePod` whales (solo local encounter, loop-1 ruling 5: 2–3 blocky-bean whale cels, ≤ 1.5k tris each, 1 px line beyond 4% screen height, surface/blow loop on twos); other encounter creatures POST-PROTOTYPE (`EncounterDef`) | Sea surface (all regions) · islands, cliffs, rocks · harbour quay, buildings, piers, ropes, crates · moored decorative boats (sway via WPO like foliage, no line) · discoveries (wreck, odd rock, lighthouse; proximity-triggered, not interactable) · sky dome, clouds, backdrop rings, sun-glint path, R2 rain curtain card |
+| Player boat (hull, cabin, mast, pennant; 2 hulls `Skiff`/`Cutter` and fitted item props per doc 11) · crew (2–3) · NPC fishmonger + shipwright + innkeeper · sell counter, shipyard slipway and Inn crew board (interactable) · zone buoys and R2 swell-gate buoy (bob + react to boat proximity) · fish in catch pop · gulls (ambient, they move) · remote boats (spec only, D3) · `E_WhalePod` whales (solo local encounter, loop-1 ruling 5: 2–3 blocky-bean whale cels, ≤ 1.5k tris each, 1 px line beyond 4% screen height, surface/blow loop on twos); other encounter creatures POST-PROTOTYPE (`EncounterDef`) | Sea surface (all regions) · islands, cliffs, rocks · harbour quay, buildings, piers, ropes, crates · moored decorative boats (sway via WPO like foliage, no line) · discoveries (wreck, odd rock, lighthouse; proximity-triggered, not interactable) · sky dome, clouds, backdrop rings, sun-glint path, R2 rain curtain card |
 
 Tie-break **PROPOSED**: if the player can click it, it pushes the boat, or it is a crew member, NPC or creature → Acts. Otherwise Stays.
 Discoveries stay painted so the inked set remains small and meaningful; their journal ping is UI, not ink.
@@ -103,7 +103,7 @@ the table above (cooler water key, −10% water saturation, overcast sky lerp, l
 + **drawn rain streaks** on twos (VFX table) + a painted grey rain-curtain card on StaysLayer, seen from R1 over the north
 (03 telegraph). Fades with 03 intensity; streak density ∝ intensity, full at ≥ 0.5. No effect on catch or boat visibility.
 
-**5. Crew cel spec** — **CONFIRMED (D4, D5, D7)**: visible, named (`CrewId` Mabel, Pip starter; Tomo via `Crew_2`),
+**5. Crew cel spec** — **CONFIRMED (D4, D5, D7)**: visible, named (`CrewId` Mabel, Pip starter; Tomo hired at the Inn crew board, needs a Bunk — D9, docs 04/11),
 faceless chunky low-poly **block dummies** (block head, torso, upper/lower limbs), **no face decals**, in the normal
 cel pipeline (two tones, `#33273B` inverted-hull ink, contact blob). Identity = 3 flat colour blocks (body, shirt,
 pants). Not a pixelated render pass. Proportions, colours and cues below **PROPOSED**.
@@ -226,7 +226,7 @@ At most one screen-wide effect at a time; nothing covers the crew; flash safety 
 ## Dependencies
 
 02 (camera FOV/distance, swell function, hull size), 03 (regions, band width, swell placement), 04 (crew names,
-count, catch event), 08 (companion profile adoption), 10 (UI tokens). Bidirectional: each of those docs must cite 09
+count, catch event), 08 (companion profile adoption), 10 (UI tokens), 11 (hull and item props, cosmetic swatches, waterline). Bidirectional: each of those docs must cite 09
 for `ActsLayer`/`StaysLayer`, palette and render profiles.
 
 ## Tuning Knobs
@@ -257,9 +257,10 @@ animation. Catch pop is the small reward beat (≈ 0.5 s); nothing shakes the sc
 
 ## UI Requirements
 
-UI tokens for 10 **PROPOSED**: panels Paper Cream with Cocoa 3 px frame and Wisteria drop shadow; text Ink on
-Cream; primary button Cocoa; ping/marks Beacon Amber; crew status = blocky dummy icon in the crew's 3 colours + name label +
-station glyph (10 owns; never colour alone, D7); undiscovered journal entries as flat silhouettes [VFX UI]. Identity colours are not used for generic UI states.
+UI tokens for 10 (**D9**, doc 10 owns): two surfaces only. **Ink Glass** (HUD over the world) = Ink `#33273B` at 70%, radius 10 px,
+no frame, cream text. **Paper** (screens) = opaque Cream, 2 px Cocoa frame, radius 14 px, one soft shadow; text Ink; primary
+button Cocoa; ping/marks Beacon Amber. Crew dummy icons appear only in the crew panel and Inn crew board (no crew HUD), in the
+crew's 3 colours + name label + slot number (never colour alone, D7); undiscovered journal entries as flat silhouettes [VFX UI]. Identity colours are not used for generic UI states.
 
 ## Cross-References
 
@@ -302,7 +303,7 @@ VFX 5, perf 2, companion 1, capture 1).
 2. Day/Dusk auto-cycle vs fixed Day in prototype (saves ~1 dev-day of blend QA).
 3. Forward+MSAA vs Deferred+TSR — decide after a 1-day spike on the 1660 (ADR).
 4. Crew body colours are a mannequin range (Umber/Peach/Tan), chosen for lightness steps, not as skin tones — owner OK?
-Closed: crew count (D5: Tomo = `Crew_2`), crew look (D7), `R2_Swells` / `LightPhase` / `RegionLook` names (00 §6).
+Closed: crew count (D5, amended D9: Tomo hired via Inn + Bunk), crew look (D7), `R2_Swells` / `LightPhase` / `RegionLook` names (00 §6).
 
 ## Interface values
 
@@ -318,6 +319,9 @@ Closed: crew count (D5: Tomo = `Crew_2`), crew look (D7), `R2_Swells` / `LightPh
 | Companion render | 512×320 DIP (08), 20 fps, scale 0.75, Kuwahara r=1, ink 1 px | 08 |
 | GPU budget full / companion | 11.2 ms @60 / ≤ 10% | 08, H2/H4 |
 | UI tokens | Ink `#33273B`, Cream `#FFF6E3`, Cocoa `#6B4A35`, Wisteria `#6E6AA8`, Amber `#FF9B21` | 10 |
-| Boat paints | Coral `#E8553F`, Lantern Yellow `#F7CF4A` | 05, 10 |
+| Boat paints | Coral `#E8553F` (default hull), Lantern Yellow `#F7CF4A`; cosmetic swatch set below | 05, 10, 11 |
+| Cosmetic swatches (11, PROPOSED) | Hull: Coral `#E8553F`, Sea Foam `#7FC8C4`, Harbour Blue `#4F79B0`, Biscuit `#E9CFA0` (starter); Deep Water `#2F5F86`, Lantern `#F7CF4A`, Dusk `#8E6FB0`, Sail White `#F2F0E6` (40 Shells); Wreck-wood `#8A6A52` (earned). Rule: hull swatch must differ from mid-sea `#4FB3BF` by ≥ 25 L* or by hue ≥ 60° so the boat reads against the water; Sea Foam passes on hue+value with the 2 px ink line, verify in R1 capture | 10, 11 |
+| Fitted item props (11) | crate (stern), hold hatch (amidships), bunk (cabin-roof bump), keel fin (below hull, visible in yard view), deep-hold hatch; ActsLayer, ≤ 400 tris each; waterline offset −0.12 m × LoadFraction | 11 |
+| Hulls (11) | `Skiff` = current preview boat; `Cutter` ≈ 1 m longer, taller deckhouse, keel mount; same ink/palette rules | 11 |
 | Crew triplets body/shirt/pants | Mabel `#8E5A40`/`#D63F7C`/`#5A6B8C` · Pip `#F6D2AE`/`#86C445`/`#4F79B0` · Tomo `#C0906A`/stripes `#2F4C8A`+`#FAF4E6`/`#D8C49A` | 04, 10 |
 | Crew backup cues | Station; Mabel wide torso, Pip tall block beanie, Tomo flat brim slab; net / rod / hand-line | 04, 10 |

@@ -38,7 +38,7 @@ with a full hold (quiet satisfaction) → linger socially or tuck into companion
 ### Painted-cel look applied to the ocean (vision level; detail owned by doc 09)
 
 - **Acts (inked cel, two-tone, #33273B inverted-hull line)**: player boat, remote boats, crew, NPC vendors,
-  fish shown in cargo/catch pop-ups, harbour interactables (sell counter, shipwright), encounter creatures
+  fish shown in cargo/catch pop-ups, harbour interactables (sell counter, shipyard slipway, inn crew board), encounter creatures
   (whales/dolphins), buoys/markers that respond to the player.
 - **Stays (soft painting, unlined, Kuwahara post, violet shadows, haze)**: open water surface, islands, cliffs,
   harbour buildings, sky dome, clouds, distant shoreline.
@@ -69,11 +69,12 @@ ping-response latency, compact-mode minutes, fps/GPU/CPU samples.
 ## 3. Prototype scope
 
 **IN**
-- 1 harbour (social hub + NPC fishmonger + shipwright), Region 1 (Tier 1, calm coastal) and Region 2 (Tier 2,
+- 1 harbour (social hub + NPC Fishmonger (sell) + Shipyard (fit, buy, paint) + Inn crew board (hire); D9), Region 1 (Tier 1, calm coastal) and Region 2 (Tier 2,
   one distinct condition: fog or swell), seamless with a soft transition band.
 - Arcade sailing (throttle/steer/anchor), local-only simulation, camera orbit.
 - 1 boat hull, 2 CrewSlots, ~10–12 fish species (6 R1, 5–6 R2), cargo + sale.
-- 3–4 upgrades total, one of which is the R2 gate (the Keel, per D1).
+- 3–4 upgrades total, one of which is the R2 gate (the Keel, per D1). **Superseded by D9**: ship fitting (doc 11) with
+  2 hulls (`Skiff`, `Cutter`), 5 items (gate = `Keel` on the `Cutter`), 1 crew hire, a small cosmetic set.
 - One soft currency (Shells), one NPC price table, no market simulation.
 - Local save (single slot) with autosave; fully playable offline.
 - Harbour hangout room: 2–8 players, position snapshots + interpolation, text chat with basic filter, one
@@ -85,7 +86,8 @@ ping-response latency, compact-mode minutes, fps/GPU/CPU samples.
 - Steam Inventory drops, redemption, server eligibility → keep `IRareDropService` stub returning "ineligible".
 - Kraken, legendary fish, mythical encounters → keep `EncounterDef` data shape extensible.
 - Regions 3+, biome blending beyond 2, icebergs, storms as navigation hazard.
-- Cosmetics shop & ship customisation beyond 2 paint colours (needed to tell boats apart in H3).
+- Cosmetics shop & ship customisation beyond 2 paint colours (needed to tell boats apart in H3). **Superseded by D9**:
+  small Paint and Decor tabs in the Shipyard (doc 11: colours, patterns, 13 placeable objects on per-hull decor points) are IN; a real-money or separate cosmetics shop stays OUT.
 - Cloud save, account services, matchmaking across many rooms, moderation tools beyond a word filter.
 - Crew levelling/traits beyond one efficiency stat; photo mode; journal beyond a simple "seen" list.
 
@@ -115,13 +117,14 @@ All files in `design/gdd/little-ocean/`, each following `.claude/docs/templates/
 | `08-companion-mode-and-ambient-audio.md` | Compact window, reduced rendering, audio beds per region | §9, §13.9 | Feature / MVP |
 | `09-art-direction-painted-cel.md` | Ocean mapping of the painted-cel look, palettes, water, VFX, perf budget | §1, §3 (mood) | Presentation / MVP |
 | `10-ui-ux-and-hud.md` | HUD, harbour menus, chat UI, ping UI, accessibility baseline | §6, §9 UI, cross-cutting | Presentation / MVP |
+| `11-ship-fitting-and-customisation.md` | Hulls, slots, weight limit, items (incl. Keel), shed, cosmetics (added by D9) | §4, §5, §11 | Core / MVP |
 
 ---
 
 ## 5. Team plan (5 drafting agents)
 
 ### A1 — systems-designer → `01`, `04`, `05` (role: `.claude/agents/systems-designer.md`, absorbs economy-designer)
-- Define the loop as a state machine: `Docked → Sailing → (CargoFull) → Returning → Docked/Selling → Shipwright`.
+- Define the loop as a state machine: `Docked → Sailing → (CargoFull) → Returning → Docked/Selling → Shipwright` (D9: Fishmonger, Shipyard and Inn crew board are all sub-screens of `Selling`).
 - Catch formula at prototype fidelity: `CatchRatePerMin = Σ CrewSlot.Efficiency × RegionTier.BaseRate × BoatSpeedFactor`; show worked examples for 1 and 2 crew in R1/R2.
 - Species table: weight, rarity weight, value in Shells, region; weighted pick formula; no rarity above "Uncommon+" in prototype.
 - `CargoCapacity` per hull/upgrade; target ~4–6 min to fill on starting setup in R1; full hold never stops sailing, only stops catching.
@@ -129,7 +132,7 @@ All files in `design/gdd/little-ocean/`, each following `.claude/docs/templates/
 - Crew is "hired" with Shells, one efficiency stat, no wages/upkeep (no chores, §12).
 - Must state explicitly: crew fishes only while app is running and boat is in a fishing zone (not in harbour); no catch-up on load.
 - Interfaces: agree `RegionTier`, `ZoneId`, `BoatSpeedFactor` with A2; `PlayerProgress` save fields with A4; HUD values with A5.
-- Must NOT: add manual fishing input, active-play bonuses, dynamic prices, upkeep timers, more than 4 upgrades.
+- Must NOT: add manual fishing input, active-play bonuses, dynamic prices, upkeep timers, more than 4 upgrades (**superseded by D9**: 2 hulls, 5 items, 1 hire, cosmetics; doc 11).
 
 ### A2 — level-designer (world/navigation) → `02`, `03` (role: `.claude/agents/level-designer.md`; consult `world-builder.md` for flavour only)
 - Arcade boat model: max speed (knots), accel/decel seconds, turn rate (°/s), anchor; no fuel, no hull damage.
@@ -167,7 +170,9 @@ All files in `design/gdd/little-ocean/`, each following `.claude/docs/templates/
 - Reduced rendering: frame cap (e.g. 15–20 fps), render scale, post stack subset, audio continues; numeric GPU/CPU targets matching H4.
 - What the boat does in companion mode (holds course / circles / anchors in zone) — must not auto-sell or chore.
 - Ambient audio: layers (waves, wind, gulls, rain) per region/weather, crossfade on transition band.
-- HUD: cargo bar, Shells, region name, ping indicator; harbour sell/shipwright screens ≤2 clicks deep.
+- HUD: cargo bar, Shells, region name, ping indicator; harbour sell/shipwright screens ≤2 clicks deep. **Superseded by D9**:
+  desktop-scaled HUD (body 20 px, floor 18 px at 1080p), compass, action bar + activity log/chat, no crew list; harbour =
+  Fishmonger, Shipyard, Inn crew board (doc 10).
 - Chat UI and ping UI (compass marker, distance in metres, expiry); controls for KB+M and gamepad.
 - Accessibility baseline: text scale, subtitles for ping callouts, colourblind-safe cargo/ping colours, remap.
 - Must NOT: add a second companion layout, notifications that nag, monetisation UI, cosmetics shop screens.
@@ -196,14 +201,15 @@ Network sizes in bytes, rates in Hz, bandwidth in kbit/s.
 | `SpeciesId`, `Rarity`, `BaseValue` | fish data row | A1 |
 | `CargoCapacity`, `CargoLoad` | units (1 fish = 1 unit in prototype) | A1 |
 | `Shells` | the only currency | A1 |
-| `UpgradeId` | e.g. `Hold_2`, `Crew_2`, `Keel` | A1 |
-| `PlayerProgress` | save struct: Shells, upgrades, journal, position | A4 |
+| `HullId` | `Skiff` (start), `Cutter` (D9; replaces `UpgradeId`) | A1 (doc 11; price 05) |
+| `ItemId` | `FishCrate`, `FishHold`, `Bunk`, `Keel`, `DeepHold` (D9; replaces `UpgradeId`) | A1 (doc 11; price 05) |
+| `PlayerProgress` | save struct: Shells, hulls/items/fitting/cosmetics, crew, journal, position | A4 |
 | `RoomId`, `PresenceSnapshot`, `SnapshotHz`, `InterpDelayMs` | multiplayer | A4 |
 | `EncounterId`, `EncounterPing` | shared encounter + broadcast | A4 (content A2) |
-| `PhaseKey` | `Docked`, `Sailing`, `Returning`, `Selling` (loop state; shipwright is a sub-screen of `Selling`). `Compact` is NOT a PhaseKey (loop-1 ruling) | A1 (UI A5) |
+| `PhaseKey` | `Docked`, `Sailing`, `Returning`, `Selling` (loop state; Fishmonger, Shipyard and Inn crew board are sub-screens of `Selling`). `Compact` is NOT a PhaseKey (loop-1 ruling) | A1 (UI A5) |
 | `HoldFull` | fishing-paused state when `CargoLoad == CargoCapacity` (D2) | A1 |
-| `Keel` | `UpgradeId` that is the `GateRequirement` for `R2_Swells` (D1); lets the boat push through swell | A1 (price) / A2 (push model) |
-| `CrewId` | `Mabel`, `Pip` (starter), `Tomo` (3rd, via `Crew_2`) (D5, D7) | A1 (rules) / A3 (look) |
+| `Keel` | `ItemId` that is the `GateRequirement` for `R2_Swells` (D1); fits only the `Cutter`'s keel mount; `HasKeel` = fitted (D9) | A1 (price 05, fit 11) / A2 (push model) |
+| `CrewId` | `Mabel`, `Pip` (starter), `Tomo` (3rd: needs a `Bunk` berth, hired at the Inn crew board for 50 Shells) (D5, D7, D9) | A1 (rules) / A3 (look) |
 | `ViewMode` | `Full` / `Compact` (overlay; the loop `PhaseKey` underneath is kept) | A5 |
 | `ActsLayer` / `StaysLayer` | painted-cel render classification | A3 |
 | `LightPhase` | `Day` / `Dusk` lighting data asset (art; never a loop state) | A3 |
@@ -258,11 +264,12 @@ not a pass.
 
 | # | Decision | Effect on docs |
 |---|---|---|
-| D1 | **R2 gate = Swell + Keel.** Region 2 has heavy swell that pushes small boats back (never damages them); buying the Keel upgrade lets the boat push through. | 02 owns swell push-back handling model; 03 owns swell band placement/telegraphing; 05 owns Keel price. |
+| D1 | **R2 gate = Swell + Keel.** Region 2 has heavy swell that pushes small boats back (never damages them); buying the Keel upgrade lets the boat push through. *(D9: the Keel is now an item that needs the `Cutter`'s keel mount; gate cost Cutter 180 + Keel 70 = 250; push effect unchanged.)* | 02 owns swell push-back handling model; 03 owns swell band placement/telegraphing; 05 owns Keel price; 11 owns fit. |
 | D2 | **Companion mode: boat drifts in place, crew keeps fishing while the game runs, fishing pauses when cargo is full.** No auto-sailing, no auto-return/auto-sell. | 08 owns; 04 must define the "cargo full → fishing pauses" state. |
 | D3 | **Harbour hangout multiplayer = PAPER PROTOTYPE only.** No networking is implemented in the prototype. Doc 06 specifies the design (room model, presence, interpolation, chat, encounter ping, capacity, bandwidth/cost estimates) and a paper/tabletop/thought-experiment test protocol to validate hypothesis (c) in theory. Hypothesis (c) pass/fail becomes paper-test criteria. Code must still keep a clean seam (interfaces) so networking can be added later. | 06 rewritten as paper spec + test protocol; 07 drops any live-service work beyond interface stubs; 10 designs chat/ping UI as mock-ups only. |
 | D4 | **Crew are visible, named inked cel characters** (2–3 on the starter boat) with idle and fishing animations. | 04 (crew rules, names/traits at prototype fidelity), 09 (crew cel spec), 10 (crew UI). |
-| D5 | **Crew count clarification:** the starter boat has 2 CrewSlots filled by 2 named crew; the `Crew_2` upgrade adds a 3rd slot/crew (so 2–3 crew per D4). | 04, 05, 09, 10 |
+| D5 | **Crew count clarification:** the starter boat has 2 CrewSlots filled by 2 named crew; the `Crew_2` upgrade adds a 3rd slot/crew (so 2–3 crew per D4). *(D9: replaced — a fitted `Bunk` adds the 3rd berth and Tomo is hired at the Inn crew board; 2–3 crew unchanged.)* | 04, 05, 09, 10, 11 |
 | D6 | **Drifting/anchored boats still fish.** `BoatSpeedFactor` at speed 0 must be > 0 (companion mode depends on it). | 04 owns the value; 08 depends on it. |
 | D7 | **Crew look = faceless blocky dummies** (owner, after loop-1 start). Chunky low-poly figures (block head, torso, limbs), **no face decals**, rendered in the normal cel pipeline (2-tone + ink line + contact blob). Each crew member is identified by a solid body/skin colour plus a simple shirt colour and pants colour (3 flat colour blocks). Names (Mabel, Pip, Tomo) are kept in the UI alongside a colour swatch; on the boat, colour is the identifier. Not a true pixelated render pass. | 09 (replace crew cel spec: shapes, per-crew colour triplets, colour-blind separation incl. a shape/pattern backup cue), 10 (portraits become colour-swatch dummy icons), 04 (crew names unchanged). |
-| D8 | **Consistency pass (2026-11-26).** Owning doc's value wins. (1) Catch tick clamp: one name and value, `MaxTickDt` = 0.25 s (04 owns; 07 uses it; 08's ≥10 Hz minimised sim stays under it). (2) R2 weather = `Drizzle` (03 owns; Bell Buoy needs it); 09 drizzle overlay, 08 Rain layer in scope. (3) Purchase confirm: 05 owns it; one confirm for purchases ≥ 100 Shells (`Keel`, `Hold_3`), one click below. (4) Chat max = 140 chars (06 owns). (5) Camera: 02 owns, 28 m arm, FOV 60°; 09 and 06 F4 recomputed (crew ≈ 5.5% / 59 px at 1080p; risk at far zoom). (6) Boat length = 8 m (02 owns). (7) FTUE timing: 01 owns, first sale ≈ 6.9 min (~6:56); 10 onboarding aligned. | 04, 07, 08 (1); 08, 09 (2); 10 (3, 4, 7); 06, 09 (5); 09 (6) |
+| D8 | **Consistency pass (2026-11-26).** Owning doc's value wins. (1) Catch tick clamp: one name and value, `MaxTickDt` = 0.25 s (04 owns; 07 uses it; 08's ≥10 Hz minimised sim stays under it). (2) R2 weather = `Drizzle` (03 owns; Bell Buoy needs it); 09 drizzle overlay, 08 Rain layer in scope. (3) Purchase confirm: 05 owns it; one confirm for purchases ≥ 100 Shells (`Keel`, `Hold_3`; after D9: `Cutter`, `DeepHold`, bow ornaments), one click below. (4) Chat max = 140 chars (06 owns). (5) Camera: 02 owns, 28 m arm, FOV 60°; 09 and 06 F4 recomputed (crew ≈ 5.5% / 59 px at 1080p; risk at far zoom). (6) Boat length = 8 m (02 owns). (7) FTUE timing: 01 owns, first sale ≈ 6.9 min (~6:56); 10 onboarding aligned. | 04, 07, 08 (1); 08, 09 (2); 10 (3, 4, 7); 06, 09 (5); 09 (6) |
+| D9 | **Owner UX/economy pass (2026-11-26).** (1) **Desktop-scaled HUD** (XAG 101 PC: body 20 px, floor 18 px at 1080p; was 32/28): cargo, Shells, compass, action bar of key prompts, activity log/chat box bottom-left; no crew list on the HUD; Ink Glass HUD plates, Paper screens. (2) **Harbour = one place per verb**: Fishmonger (sell only), Shipyard (fit gear, buy gear/hulls, Paint · Decor), Inn crew board (hire). The shipwright's 4 upgrade cards and `Crew_2` are gone. (3) **Upgrades → ship fitting** (doc 11): hulls `Skiff` (start; S,S,M; 200 kg) and `Cutter` (180; S,S,M,M,L + keel mount; 650 kg); items `FishCrate` (starter), `FishHold` 60, `Bunk` 40, `Keel` 70 (R2 gate, D1 effect unchanged, needs the Cutter), `DeepHold` 300 (replaces `Hold_3`). Start `CargoCapacity` 20. Skiff squeeze: Crate + Hold + Bunk = 220 > 200 kg. (4) **Crew**: Tomo hired at the Inn for 50 (one-off, no wages), needs a free berth; Bunk 40 + hire 50 = 90 = old `Crew_2`. (5) **Gate cost** Cutter 180 + Keel 70 = 250 = old Keel; modelled R2 unlock A' 27.8 (was 29.5) / B 19.8 / C 28.3 / D 25.2 min. (6) **Save**: `OwnedUpgrades` → `ActiveHull`, `OwnedHulls`, `OwnedItems`, `Fitting`, `Cosmetics`, hired crew + crew waiting ashore. (7) **Cosmetics** (paint, sail, pennant, bow ornament, name) in the Shipyard; curated palette (09); bought 20–120 or earned by discoveries; never change stats. Supersedes "max 4 upgrades" (§5 A1), §3 "3–4 upgrades" and the §5 A5 HUD list. | 10 (1, 2, HUD); 11 (new, 3, 7); 05 (prices, F4); 04 (hiring); 01 (loop, telemetry); 02 (`HasKeel`); 03 (harbour layout); 07 (6); 08 (companion bar); 09 (models, palette) |

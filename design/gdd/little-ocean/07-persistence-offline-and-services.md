@@ -10,7 +10,7 @@ corruption through atomic writes and 2 rotating backups. The game is fully playa
 design enforces this: the game never computes elapsed time at load. `ICloudSaveService` and `IRareDropService` exist only as stubs that return
 "not implemented"/"ineligible". The Steam Inventory redemption flow is designed on paper only.
 
-> **Quick reference**: Layer `Foundation` · Priority `MVP` · Key deps: 01/04/05 (fields), 06 (`BlockedPlayerIds`), 08 (Compact quit/suspend)
+> **Quick reference**: Layer `Foundation` · Priority `MVP` · Key deps: 01/04/05/11 (fields), 06 (`BlockedPlayerIds`), 08 (Compact quit/suspend)
 
 ## Overview
 
@@ -36,25 +36,34 @@ The game is calm and trustworthy: closing it is safe and never punishes you, and
 | `SaveCounter` | int64 | +1 per successful write. Used for backup ordering and future cloud conflict |
 | `SavedAtUtc` | FDateTime | Display only. **Never used for gameplay** (Rule 6) |
 | `Shells` | int32 | ≥ 0 |
-| `OwnedUpgrades` | TArray<FName `UpgradeId`> | e.g. `Hold_2`, `Crew_2`, `Keel` (D1) |
-| `Crew` | TArray<{`CrewSlot` int8, CrewId FName, Name FString, `Efficiency` float}> | 2–3 named crew (D4) |
+| `ActiveHull` | FName `HullId` | `Skiff` (start) or `Cutter` (doc 11, D9) |
+| `OwnedHulls` | TArray<FName `HullId`> | always contains `Skiff` |
+| `OwnedItems` | TArray<FName `ItemId`> | e.g. `FishCrate`, `FishHold`, `Bunk`, `Keel` (D1, D9); unique, bought once; unfitted = in the shed |
+| `Fitting` | TMap<FName SlotId, FName `ItemId`> | slot → item on the `ActiveHull` (e.g. `S1`→`FishCrate`, `M1`→`FishHold`, `Keel`→`Keel`); must satisfy 11 F1 |
+| `Cosmetics` | {OwnedIds TArray<FName>, Applied TMap<Part, FName>, Decor TMap<DecorPoint, FName>, BoatName FString ≤16} | Paint · Decor (doc 11); bought or discovery-earned |
+| `Crew` | TArray<{`CrewSlot` int8, CrewId FName, Name FString, `Efficiency` float, bAshore bool}> | 2–3 named crew (D4); hired crew list; `bAshore` = waiting at the Inn (no berth, doc 04) |
 | `Cargo` | TArray<{`SpeciesId` FName, Count int16}> | Σ Count = `CargoLoad` ≤ `CargoCapacity` |
 | `JournalSeen` | TArray<FName> | SpeciesIds, DiscoveryIds, `EncounterId`s |
 | `Position` | {`RegionId`, X, Y float m, Heading deg, bDocked} | Restore point |
-| `PaintColour` | uint8 | 0/1 (needed for 06) |
+| ~~`PaintColour`~~ | — | Replaced by `Cosmetics.Applied` (D9); 06 reads hull/sail/pennant from there |
 | `BlockedPlayerIds` | TArray<uint64> | ≤ 200, from 06 |
 | `UnlockedCosmeticIds` | TArray<FName> | Empty in prototype. Future offline mirror of Steam (Rule 11) |
 | `PlaySeconds` | int64 | Telemetry/display only |
 
    Settings (audio, keybinds, `ViewMode` preference) live in `UGameUserSettings` (verify), not in the save, so a corrupt save never resets settings.
-3. **PROPOSED, autosave triggers** (write only when dirty): sell, purchase/upgrade, crew hire, journal entry, dock/undock, `RegionId` change,
+3. **PROPOSED, autosave triggers** (write only when dirty): sell, purchase (item/hull/cosmetic), Shipyard Done (fit/paint change), crew hire, journal entry, dock/undock, `RegionId` change,
    `ViewMode` change, graceful quit, window minimise, and every `AutosaveIntervalS` = 60 s while sailing. Purchases and sales save *immediately*, so Shells spent are never lost.
 4. **PROPOSED, atomic write + backups**: serialise → write `Slot0_tmp` → reload `Slot0_tmp` and verify CRC32 → rotate `Slot0_bak1`→`bak2`, `Slot0`→`bak1`
    (rotation at most once per 10 min of play, so backups span real time) → rename `tmp`→`Slot0` (`IPlatformFile::MoveFile`, verify).
    The header wrapper stores {magic `LOSV`, `SchemaVersion`, `SaveCounter`, payload CRC32}.
 5. **PROPOSED, load and recovery order**: `Slot0` → `bak1` → `bak2` → new game. A file that fails magic, CRC or deserialisation is renamed to
    `*.corrupt_<utc>` and kept, never deleted. If a backup was used: one dismissible line, "Your last save couldn't be read, so we restored the one from N minutes ago."
-   **Sanitise on load**: clamp `Shells` to [0, 10,000,000]; trim `Cargo` to `CargoCapacity`; drop unknown `UpgradeId`/`SpeciesId` and log them; if `Position` is outside the map → docked at Harbour.
+   **Sanitise on load**: clamp `Shells` to [0, 10,000,000]; drop unknown `HullId`/`ItemId`/`SpeciesId`/cosmetic ids and log them
+   (`OwnedHulls` always keeps `Skiff`; an unknown or unowned `ActiveHull` → `Skiff`); drop `Fitting` entries whose item is not
+   owned, whose slot does not exist on the hull, or whose size does not fit; if the loadout is still illegal (`Load > LoadLimit`)
+   auto-move items to the shed in doc 11's order (`Keel`, `DeepHold`, then lightest-first) until legal, and log what moved;
+   recompute `CargoCapacity`/`CrewBerths` (11 F2), then trim `Cargo` to `CargoCapacity`; crew beyond `CrewBerths` → `bAshore`
+   (never deleted); if `Position` is outside the map → docked at Harbour.
 6. **CONFIRMED (brief §5, §12, 00 §3), no offline fishing, enforced by design**:
    a. Catch accrues only inside the running game's tick (doc 04 formula), with `SimDelta = min(FrameDelta, MaxTickDt = 0.25 s)` (`MaxTickDt` owned by doc 04).
       An OS sleep, debugger pause or 10-min hitch therefore credits at most 0.25 s.
@@ -112,8 +121,8 @@ A retry returns the stored result and never grants a second time. Ledger states:
 ## Formulas
 
 **F1 Worst-case progress loss on crash** = `AutosaveIntervalS / 60 × CatchRatePerMin`. With `CatchRatePerMin` = 5.0 (starter boat in R1, 2 crew × 2.5; doc 04): 60/60 × 5.0 = **5 fish**. Shells loss = 0 (Rule 3).
-**F2 Save size** ≈ header 20 + Shells 4 + upgrades 4 × 12 + crew 3 × 32 + cargo 12 × 8 + journal 20 × 12 + position 21 + blocked 200 × 8 + misc 32 ≈ **2.2 KB** raw.
-With UE property-tag overhead (×2–3, ASSUMPTION – verify by measuring) that is ≈ 4–7 KB. Writes per hour at 1 save/60 s plus events (~20) ≈ 80 → ≈ 0.5 MB/h of disk writes, which is negligible. Serialise time < 1 ms on the game thread; the write is async.
+**F2 Save size** ≈ header 20 + Shells 4 + hulls 3 × 12 + items 5 × 12 + fitting 6 × 24 + cosmetics (20 ids × 12 + 6 applied × 16 + name 16 = 352) + crew 3 × 33 + cargo 12 × 8 + journal 20 × 12 + position 21 + blocked 200 × 8 + misc 32 ≈ **2.7 KB** raw (was 2.2 KB before D9).
+With UE property-tag overhead (×2–3, ASSUMPTION – verify by measuring) that is ≈ 5–8 KB. Writes per hour at 1 save/60 s plus events (~20) ≈ 80 → ≈ 0.5 MB/h of disk writes, which is negligible. Serialise time < 1 ms on the game thread; the write is async.
 **F3 Backup coverage**: `bak2` is at most `2 × BackupRotateMinS` = 20 min old. So the worst-case corruption loss is ≤ 20 min of play, and ≤ 60 s in the normal case.
 **F4 Offline-credit bound**: catch credited over any real-time gap G = `min(G, 0.25 s) × CatchRatePerMin / 60`. For G = 8 h asleep: 0.25 × 5.0 / 60 = 0.021 fish → **0**.
 
@@ -128,12 +137,14 @@ With UE property-tag overhead (×2–3, ASSUMPTION – verify by measuring) that
 | Disk full / write denied | Retry at the next trigger. After 3 failures, a non-modal "Couldn't save — check disk space" message. Play continues |
 | Quit during Compact | Graceful quit triggers a save. A hard kill falls back to F1 |
 | PC sleeps with game open | F4: no credit for sleep time. Cargo is unchanged |
+| Save edited to an illegal loadout (e.g. Crate + Hold + Bunk on the Skiff, Keel on the Skiff) | Sanitise (Rule 5): invalid fits dropped, then auto-move to the shed by 11's order until `Load ≤ LoadLimit`; logged; crew beyond berths wait ashore |
+| Save names an unknown `ItemId`/`HullId` (removed item, typo) | Dropped and logged; `ActiveHull` falls back to `Skiff`; no Shells refunded |
 | Player edits save (Shells = 9e9) | Clamp on load. This is single-player, so there is no further enforcement. Online data never depends on save values (06 Rule 2) |
 | Cloud/rare-drop stub called | `NotImplemented`/`Ineligible_NotImplemented` immediately. The UI hides these features in the prototype |
 
 ## Dependencies
 
-01 (`PhaseKey` triggers), 04 (`Cargo`, `CatchRatePerMin`, cargo-full pause), 05 (`Shells`, `UpgradeId`), 03 (`RegionId`, map bounds, discovery IDs), 06 (`BlockedPlayerIds`,
+01 (`PhaseKey` triggers), 04 (`Cargo`, `CatchRatePerMin`, cargo-full pause), 05 (`Shells`), 11 (`ActiveHull`, `OwnedHulls`, `OwnedItems`, `Fitting`, `Cosmetics`, sanitise order), 03 (`RegionId`, map bounds, discovery IDs), 06 (`BlockedPlayerIds`,
 `FOffline*` pattern), 08 (Compact quit/minimise save), 10 (load notices). Reverse: each of those docs must name `PlayerProgress` as its persistence owner.
 
 ## Tuning Knobs
@@ -143,7 +154,7 @@ With UE property-tag overhead (×2–3, ASSUMPTION – verify by measuring) that
 | `AutosaveIntervalS` | 60 | 30–180 | Crash loss (F1) vs disk writes |
 | `BackupCount` / `BackupRotateMinS` | 2 / 10 min | 1–5 / 5–30 | Corruption recovery depth (F3) |
 | `MaxTickDt` (owner 04) | 0.25 | 0.1–0.5 | Offline-credit bound (F4); hitch tolerance |
-| `ShellsClampMax` | 10,000,000 | ≥ 100× max upgrade cost | Sanity only |
+| `ShellsClampMax` | 10,000,000 | ≥ 100× max item/hull price | Sanity only |
 | `BlockedPlayerIds` max | 200 | 50–1000 | Save size |
 
 ## Visual/Audio Requirements
@@ -186,7 +197,7 @@ Doc 10 owns these: save-icon spot; one-line recovery notice; "newer version" dia
 | Save slot / backups | `LittleOcean_Slot0` + 2 | files | PROPOSED | 10 |
 | `AutosaveIntervalS` | 60 | s | PROPOSED | 01, 08 |
 | `MaxTickDt` | 0.25 | s | PROPOSED | 04 |
-| Save size | 4–7 | KB | ASSUMPTION – verify by measuring | — |
+| Save size | 5–8 | KB | ASSUMPTION – verify by measuring | — |
 | `BlockedPlayerIds` max | 200 | entries | PROPOSED | 06 |
 | `ICloudSaveService` result | NotImplemented | — | CONFIRMED (D3) stub | — |
 | `IRareDropService` result | Ineligible_NotImplemented | — | CONFIRMED (00 §3) stub | 04 |
