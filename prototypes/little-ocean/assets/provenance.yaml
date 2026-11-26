@@ -1,0 +1,9 @@
+# PROTOTYPE - NOT FOR PRODUCTION
+# Every file in assets/ and vendor/ is listed here.
+vendor/three.module.js:
+  source: https://registry.npmjs.org/three/-/three-0.160.1.tgz (package/build/three.module.js)
+  version: 0.160.1
+  license: MIT (Copyright 2010-2023 Three.js Authors)
+  placeholder: false
+# No image or audio files: all textures are painted procedurally at start (scene/paint.js) and all sound is
+# synthesised with WebAudio (juice.js).
