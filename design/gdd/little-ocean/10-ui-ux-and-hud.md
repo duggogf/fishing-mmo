@@ -31,9 +31,14 @@ note handed across a counter, never a dashboard.
 1. **Desktop scale (owner UX pass)**: the game targets a PC monitor at desk distance, 1080p reference. Text sizes
    follow the Xbox Accessibility Guideline 101 PC/VR minimum (18 px body height at 1080p), not the 26–28 px
    console/TV (10-foot) values the first draft used. Type scale, sizes and scale formula: §Formulas, §Interface values.
-2. **Two surface styles**:
-   - **HUD over the world = Ink Glass**: Aubergine Ink `#33273B` at 70% alpha, radius 10 px, no frame, no drop
-     shadow; text Paper Cream `#FFF6E3`. 70% keeps cream text ≥4.5:1 even over pure white sky/foam (§Formulas F3).
+2. **Attention follows relevance (owner UX pass, `/clean-ui`)**: every HUD element is in one state at a time, chosen
+   by what the player is doing. Plates are a *focus signal*, not a legibility crutch.
+   - **Hidden**: not drawn (reachable by peek or its own screen).
+   - **Ambient** (default at sea): no plate. Cream `#FFF6E3` glyphs at 92% with a 1–2 px Ink outline and soft shadow
+     (§Formulas F3). Keycaps are cream outlines, not filled chips. No motion while values are static.
+   - **Focused**: Ink Glass plate (Aubergine Ink `#33273B` at 70%, radius 10 px), scale 1.2× from its anchor corner,
+     eases in over 150 ms with no bounce. It needs a named trigger and exit (§HUD relevance matrix).
+   - **Interruptive**: none in normal play.
    - **Screens and dialogs = Paper**: opaque Paper Cream, 2 px Cocoa `#6B4A35` frame, radius 14 px, one soft
      shadow (0 4 16 px, Ink 25%); text Ink. Primary button = Cocoa fill + cream text; confirm = Collar Crimson
      `#D02A45` + cream text. Exact hex for Wisteria/Collar Crimson and region accents: doc 09.
@@ -45,62 +50,69 @@ note handed across a counter, never a dashboard.
 5. **Depth rule**: any harbour action ≤2 clicks from walking up to the counter (CONFIRMED §5 A5); the one exception
    is doc 05's single confirm step for purchases ≥ 100 Shells (D8).
 6. **No nagging (CONFIRMED §5 A5)**: no repeating prompts, no "you could be earning" text, no badge counters.
-7. **HUD fade**: cargo, Shells and compass fade to 40% after 8 s of no change while Sailing (PROPOSED; any value
-   change or mouse move restores 100% for 4 s). The action bar and log follow their own rules below. Hide all: `H`.
+7. **Peek**: hold `Tab` / `LB` and every element is Focused (including Shells) for as long as it is held. `H` hides
+   all. Settings → Accessibility → HUD style: **Ambient** (default) or **Always backed** (plates on every element).
+
+### HUD relevance matrix (sailing contexts; `/clean-ui` method)
+H = Hidden · A = Ambient · F = Focused. Each non-default cell names its trigger → exit.
+
+| Element | Sailing (rest) | Hold just filled | Docked at a counter | In a harbour screen | Chat open | Peek held |
+|---|---|---|---|---|---|---|
+| Cargo | **A** ("go home yet?") | **F** 6 s · hold hits 100% → 6 s | A | **F** in Fishmonger only; H elsewhere | A | F |
+| Shells | **H** (no decision at sea) | H | A | **F** · screen opens → closes | H | F |
+| Shells change | `+N` lift 2 s, then back to its state | | | lift | | |
+| Compass | **A** ticks + letters, no strip | A, harbour marker brightens until docked | H | H | A | F |
+| Ping marker | **F** amber marker + subtitle 6 s → A marker | | | queued | | |
+| Region name | **H**; F 6 s on crossing 50% of `TransitionBand` | | | | | F |
+| Speed | **H**; A while the throttle changes (+3 s); A "Anchored" while anchored | | | | | F |
+| Action prompts | **A** outlined keycaps | A | **F** `E` Talk chip · enter trigger → leave | **F** screen prompts | F (Enter send · Esc close) | — |
+| Activity log | **A** lines fade 12 s; nothing when idle | A line "Hold full" | A | H (queued) | **F** box + history + input · Enter → Esc/send | A |
+| Log history | H | H | H | H | F | — (hover / `L` / D-pad up opens it: F) |
+| Hint pill | **F** once each · trigger → action or 8 s | | | | | — |
+| Crew info | **H** (diegetic: crew pose on deck; `C` panel) | H (crew visibly rest) | H | F at the Inn crew board | H | H |
+
+Budget: at rest, Focused = 0; per screen region ≤ 1 Focused element; Interruptive = 0.
 
 ### HUD (Sailing, 1920×1080 reference)
 ```
 +--------------------------------------------------------------------------------------------------+
-|32                                                                                              32|
-| [fish ====---- 23/32]              [ N · · ⚓ · · E · · ]               [shell 1,240]  |
-|  cargo plate 232x40               compass 420x28                        Shells plate auto x40     |
-|                                    The Shallows   <- 18 px, on region entry only (6 s)          |
-|                                                                                                  |
-|                                     (open sea, ≥95% of the frame)                                |
-|                                                                                                  |
-| Pip landed a Mackerel · new          <- activity log 440x(0–168), lines fade 12 s     [6 kn ▮▮▮▯▯] |
-| Hold is half full                                                                   speed, 3 s  |
-| [W A S D] Sail [Space] Anchor [C] Crew [J] Journal [Enter] Chat [Esc] Menu                      |
-|  action bar, height 32                                           [hint pill, bottom centre]      |
+| fish ═══─── 23/32                    ı · N · ı · ⌂ · E · ı                                           |
+|  cargo (Ambient)                   compass ticks (Ambient)              [Shells: Hidden at sea]   |
+|                                      The Shallows   <- on region entry only (6 s)                |
+|                                     (open sea, ≥98% of the frame, no plates)                     |
+| Pip landed a Mackerel · new          <- log lines, Ambient, fade 12 s           6 kn ▮▮▮▯▯ (A, 3 s)|
+| W A S D Sail  Space Anchor  C Crew  J Journal  Enter Chat  Esc Menu   <- outlined prompts (A)      |
 +--------------------------------------------------------------------------------------------------+
 ```
 - **Cargo** (top-left, `CargoLoad`/`CargoCapacity`, doc 04): fish icon 24 px + bar 120×8 + count `23/32` (18 px,
   tabular). At full: box-lid icon replaces the fish, bar stripes, count becomes "Full" (icon + word, never colour
-  alone). A landed fish shows a `+1` that rises 12 px and fades over 0.8 s next to the count (no per-fish log line).
-- **Shells** (top-right, doc 05): shell icon 24 px + integer 20 px/600 with thousands separator; `+N` on sale only.
-- **Compass** (top-centre): 420×28 Ink Glass strip, cardinal letters 16 px, 18 px markers: harbour always,
-  discoveries once seen, Beacon Amber ping marker (06/03). **Region name** (`RegionId` display name, 18 px/600)
-  appears under the strip for 6 s when crossing 50% of `TransitionBand` (doc 03), then fades; always readable in
-  the journal and as the compass tooltip.
-- **Speed readout** (bottom-right, doc 02): `6 kn` + 5-notch throttle ladder on a 112×40 plate. Shown while the
-  throttle changes and for 3 s after; an anchor icon + "Anchored" stays while `Anchored`. Hidden otherwise.
-- **Action bar** (bottom-left; replaces the first draft's crew bean): one row of input prompts, each a key/button
-  glyph + verb. Glyph = 24 px keycap (KB/M) or 24 px face-button disc in Xbox colours (A green, B red, X blue,
-  Y yellow) with the letter inside, so it reads without colour. Verb 18 px/600. Gap 20 px between items.
-  - Sailing: `WASD` Sail · `Space` Anchor · `C` Crew · `J` Journal · `Enter` Chat · `Esc` Menu.
-  - Docked at a counter: `E` Talk is inserted first and highlighted (Paper chip) until used.
-  - Inside a screen: the bar shows that screen's prompts (e.g. `E` Sell all · `Esc` Back) and the world HUD hides.
-  - Every item is also a mouse button (hover = Ink Glass chip, click = same action). Gamepad shows pad glyphs.
-  - Settings → "Action bar": Full (default) · Context only (hides the always-there verbs, keeps `E` Talk and
-    screen prompts) · Off.
-- **Activity log + chat** (bottom-left, directly above the action bar, 440 px wide, grows upward to 6 lines/168 px):
-  - Idle: no box. A new line appears on an Ink Glass backing, stays 12 s, then fades over 1 s. When the last line
-    fades, nothing is left on screen.
-  - Hover, `L` or D-pad up: the box opens at Ink Glass 70% showing the last 20 lines (scrolls), with tabs
-    `All · Crew · Chat`. It closes on mouse-out / `L` again / 4 s without hover.
-  - Lines are 18 px, 24 px leading, max 2 lines each, wrapped; crew lines start with the crew name in bold (never
-    colour alone).
-  - **Log events (BUILT, solo)**: first catch of each species this trip ("Pip landed a Mackerel"), new species
-    ("· new" suffix + journal), Uncommon+ catch, hold half and full, region entered, discovery seen, sale total,
-    hull bought, crew hired, cosmetic earned, whale pod ping, crew stopped fishing (left `ZoneId`). Routine catches are **not** logged (with
-    3 crew that would be a line every ~8 s); the cargo `+1` covers them.
+  alone) and the element is Focused for 6 s. A landed fish shows a `+1` that rises 12 px and fades over 0.8 s.
+- **Shells** (top-right when shown, doc 05): shell icon 24 px + integer 20 px/700. Hidden at sea; `+N` lift on a
+  sale; Focused in the Fishmonger, Shipyard and Inn screens; shown by peek.
+- **Compass** (top-centre, 420 wide): ticks and cardinal letters 15 px, 18 px markers (harbour always, discoveries
+  once seen, Beacon Amber ping). No strip at rest. **Region name** (18 px/700) shows for 6 s on entry, then hides.
+- **Speed readout** (bottom-right, doc 02): `6 kn` + 5-notch throttle ladder, Ambient, only while the throttle
+  changes and 3 s after; "Anchored" stays while `Anchored`.
+- **Action prompts** (bottom-left): one row of key/button glyph + verb (18 px/700, gap 20 px). Keycaps 24 px as cream
+  outlines; gamepad discs keep their letter inside (A green, B red, X blue, Y yellow) so they read without colour.
+  - Sailing: `WASD` Sail · `Space` Anchor · `C` Crew · `J` Journal · `Enter` Chat · `Esc` Menu (Ambient).
+  - Docked at a counter: `E` Talk appears first as a Focused cream chip until used.
+  - Inside a screen: the bar shows that screen's prompts and is Focused (plate).
+  - Every item is also a mouse button (hover = Focused). Settings → Action bar: Full · Context only · Off.
+- **Activity log + chat** (bottom-left, above the prompts, ≤440 px wide, ≤6 lines):
+  - Ambient: each new line appears as outlined text, stays 12 s, fades over 1 s. No box, ever, unless asked.
+  - Hover, `L` or D-pad up: history box (Focused, Ink Glass) with the last 20 lines and tabs `All · Crew · Chat`;
+    closes on mouse-out / `L` / 4 s idle.
+  - **Enter: chat box** (Focused): history + 32 px input row; Enter sends, Esc closes back to Ambient lines.
+    MOCK-UP ONLY for multiplayer (D3). Rate/length values: doc 06.
+  - Lines are 18 px, 24 px leading, max 2 lines each; crew lines start with the crew name in bold.
+  - **Log events (BUILT, solo)**: first catch of each species this trip, new species ("· new" + journal), Uncommon+
+    catch, hold half and full, region entered, discovery seen, sale total, hull bought, crew hired, cosmetic earned,
+    whale pod ping, crew stopped fishing (left `ZoneId`). Routine catches are **not** logged (F5).
   - Rate cap: ≤1 new line per 3 s; queued lines of the same type merge ("Mabel and Tomo landed Sardines").
-  - **Chat (MOCK-UP ONLY, D3)**: `Enter` opens a 32 px input row at the bottom of the open box; Esc closes; player
-    lines show the name in bold + text; chat lines follow the same 12 s fade. Rate/length values: doc 06.
-- **Hint pill** (onboarding / swell toast, doc 02 rule 8): bottom-centre, 72 px above the screen edge, Ink Glass,
-  20 px text, max one on screen.
-- **Footprint**: persistent elements (cargo, Shells, compass, action bar) ≈ 46k px² = 2.2% of 1920×1080
-  (§Formulas F4). The first draft's persistent HUD was ≈ 7.5%.
+- **Hint pill** (onboarding / swell toast, doc 02 rule 8): bottom-centre, 112 px above the edge, Focused, max one.
+- **Footprint at rest**: no plates; glyph bounds of cargo + compass ticks + prompts ≈ 1.6% of the frame (F4),
+  down from 2.2% (plated) and 7.5% (first draft).
 
 ### Harbour: one place, one verb (owner UX pass, D9)
 The harbour has one place for each job, so the player's mental map is the quay itself: **Fishmonger** sells,
@@ -200,7 +212,7 @@ Earned cosmetics show a small stamp on the entry that unlocked them (11).
 Paper 360×420 column at the left, settings panel 720×500 beside it, over the dimmed world (the game keeps running behind it in solo; nothing
 is lost by pausing). Items: Resume · Settings · Companion window (F9) · Controls · Quit to desktop. Settings tabs:
 Display (UI scale 80–150%, HUD fade, Action bar Full/Context/Off), Audio, Controls (rebind, glyph style),
-Accessibility (text scale, reduce motion/flashes, hints off, Ink Glass opacity 70–85%). Each change previews live.
+Accessibility (text scale, reduce motion/flashes, hints off, HUD style Ambient / Always backed). Each change previews live.
 
 ### Encounter ping and chat — MOCK-UP ONLY except the solo whale ping (CONFIRMED owner D3)
 - **Ping**: Beacon Amber whale glyph on the compass + subtitle under the compass "Whale pod · NE · 240 m" (18 px,
@@ -242,11 +254,14 @@ costs, hire fee), 03 (`RegionId`, discoveries, `TransitionBand`), 02 (`BoatSpeed
   in this doc is multiplied by S. Text px = base × S. Examples: 1440p, 1.0 → S 1.33 → body 27 px; 4K, 1.0 → S 2.0 →
   body 40 px; 1080p, 1.25 → body 25 px. At `UIScale` < 1.0 text may go below the 18 px floor by player choice
   (XAG 101 allows smaller at the player's discretion); the default never does.
-- **F3 Ink Glass contrast**: composite C = α·Ink + (1−α)·B. Worst case B = white `#FFFFFF`, α = 0.70 →
+- **F3 Legibility.** *Ambient* (no plate): legibility comes from the glyph outline (Ink, 1–2 px at 95%) plus a soft
+  shadow (0 1 4 px, Ink 60%). Contrast ratios assume a flat background, so this is checked by screenshot (AC 4):
+  the brightest sky/foam and the darkest dusk frame, plus greyscale. *Focused* (Ink Glass plate): composite C = α·Ink + (1−α)·B. Worst case B = white `#FFFFFF`, α = 0.70 →
   C ≈ `#6E6876`(sRGB 112/104/118, L ≈ 0.15) → cream `#FFF6E3` (L ≈ 0.92) ratio (0.97)/(0.20) ≈ **4.9:1** ≥ 4.5:1.
   α = 0.62 gives ≈ 3.9:1 and fails, so 0.70 is the floor.
-- **F4 HUD footprint** = Σ(persistent plate areas) / (1920×1080). Cargo 232×40 (9.3k) + Shells 140×40 (5.6k) +
-  compass 420×28 (11.8k) + action bar ≈ 610×32 (19.5k) = 46.2k px² → **2.2%**. Budget ≤3% (Tuning Knob).
+- **F4 HUD footprint at rest** = Σ(glyph bounds of Ambient elements) / (1920×1080). Cargo ≈ 200×24 (4.8k) + compass
+  ticks/letters ≈ 420×22 (9.2k) + prompts ≈ 760×24 (18.2k) = 32.2k px² → **1.6%**, of which the eye-catching mass is
+  smaller still because nothing is a filled block. Shells hidden. Budget ≤3% (Tuning Knob). Plated version was 2.2%.
 - **F5 Log line rate** (why routine catches are not logged): catches/min = Σ crew rate = 2.5 × 3 = 7.5/min → one
   line every 8 s, above the ≤1 per 3 s cap and well above a "calm" rate. Logged events average ≈ 1 per 40 s in
   the 45-min H1 session estimate (≈ 11 species firsts + 4 half/full + ~4 sales + regions/discoveries/pings).
@@ -273,9 +288,11 @@ Hard: 04, 05, 11, 03, 02, 01, 09 (hex tokens, fish/crew cels), 08. Paper: 06. Ea
 | Knob | Default | Safe range | Affects |
 |---|---|---|---|
 | `UIScale` | 1.0 | 0.8–1.5 | all HUD/screen size (F2) |
-| `HudFadeDelay` | 8 s | 4–20 s | calm vs at-a-glance |
-| `HudFadeAlpha` | 0.4 | 0.2–1.0 | visibility of cargo/Shells/compass when idle |
-| `InkGlassAlpha` | 0.70 | 0.70–0.85 (never lower, F3) | HUD plate legibility vs see-through |
+| `AmbientOpacity` | 0.92 | 0.75–1.0 | how quiet Ambient elements are |
+| `FocusScale` | 1.2 | 1.1–1.3 | how strongly Focused elements stand out |
+| `FocusEase` | 150 ms | 100–250 ms | promote/demote transition |
+| `CargoFullFocus` | 6 s | 3–10 s | how long the full-hold moment holds attention |
+| `InkGlassAlpha` | 0.70 | 0.70–0.85 (never lower, F3) | Focused plate legibility |
 | `LogLineLife` | 12 s | 6–30 s | how long log/chat lines stay |
 | `LogMaxLines` | 6 | 3–8 | log box height when idle |
 | `LogRateCap` | 1 per 3 s | 1 per 2–6 s | log calm |
@@ -305,6 +322,7 @@ just not touching anything for 8 s (fade) or pressing `H`.
 | Activity log open | L or hover | D-pad up |
 | Chat (mock) | Enter | — (POST-PROTOTYPE on-screen keyboard) |
 | Companion mode | F9 | Hold View 0.6 s |
+| Peek (all HUD Focused while held) | hold Tab | hold LB |
 | Hide HUD | H | D-pad down |
 | Menu / back | Esc | Menu / B (in screens) |
 All remappable (Enhanced Input user mappings); the action bar always shows the current binding. No fishing action
@@ -313,7 +331,8 @@ exists on any device (P2).
 ### Accessibility baseline
 - [x] Keyboard-only and gamepad-only complete the full H1 loop (focus ring: 2 px Wisteria outline + 2 px offset).
 - [x] Text: body 20 px, floor 18 px at 1080p (XAG 101 PC minimum), `UIScale` up to 1.5; ink on cream ≥13:1;
-  cream on Ink Glass ≥4.5:1 over any background (F3).
+  Focused: cream on Ink Glass ≥4.5:1 over any background; Ambient: outlined glyphs pass the bright/dark screenshot
+  check (F3). Players who want plates everywhere pick HUD style "Always backed".
 - [x] Not colour alone: cargo full (icon+word), crew identity (name + slot number, crew panel), crew state (glyph +
   word), ping (shape + text), buy state (stamp/label), pad glyphs (letter inside the disc).
 - [x] Colourblind: no red/green pairs carry meaning; validate with Deuteranopia/Protanopia/Tritanopia filters.
@@ -348,7 +367,9 @@ crew+journal 2 d, onboarding hints 1 d, input/remap 2 d, accessibility pass 2 d,
 3. Full loop playable with keyboard only and with gamepad only (QA run each).
 4. At 1080p, `UIScale` 1.0: all text ≥18 px body height (measured descender-to-ascender, XAG 101); contrast ≥4.5:1
    everywhere, checked on a white-sky and a dark-dusk screenshot.
-5. Persistent HUD footprint ≤3% of the frame at 1080p (sum of plate bounds in a Sailing screenshot, F4).
+5. Resting Sailing screenshot: no plates on screen, Shells not visible, footprint ≤3% by glyph bounds (F4).
+5b. Each Focused state in the relevance matrix appears on its trigger and returns to its resting state on its exit,
+   with no manual dismissal (cargo full 6 s, Shells in screens, chat on Enter/Esc, peek on hold/release) — capture check.
 6. No crew information on the Sailing HUD; in a 5-min sailing screenshot sequence the only HUD elements are cargo,
    Shells, compass, action bar and (transiently) log lines, speed readout, hint pill.
 7. Every action bar item triggers its action when clicked, and its glyph updates within 1 frame of switching
@@ -362,17 +383,18 @@ crew+journal 2 d, onboarding hints 1 d, input/remap 2 d, accessibility pass 2 d,
 
 ## Open Questions
 1. Gamepad anchor: Y (02) vs B (10). B also means Back inside screens; Y avoids the overlap. Owner to pick.
-2. Should the action bar fade to 60% after `HudFadeDelay` like the corner HUD? PROPOSED: no (it is the
-   discoverability surface); revisit after H1 observer notes.
+2. ~~Action bar fade~~ CLOSED by `/clean-ui` pass: prompts are Ambient (outlined, no plate); Settings offer Context only / Off.
 3. Should crew efficiency ever be shown as a number (e.g. tooltip)? PROPOSED: no.
-4. Should the HUD auto-fade at all (calm) or stay fixed (glanceable)? Validate by H1 observer notes.
+4. ~~HUD auto-fade~~ CLOSED: replaced by attention states (Ambient at rest, Focused on trigger, peek). Validate by H1
+   observer notes: do players find Shells when they want them (peek / screens)?
 
 ## Interface values
 | Value | Number / name | Consumer |
 |---|---|---|
-| HUD elements | Cargo plate, Shells plate, Compass strip (+region on entry), Action bar, Activity log/chat, Speed readout (transient), Hint pill | 02, 04, 05, 03 |
-| HUD footprint | ≤3% persistent at 1080p (2.2% as specified) | review gate |
-| Surfaces | Ink Glass = `#33273B` @ 70%, r10, cream text; Paper = `#FFF6E3`, 2 px `#6B4A35`, r14 | 08, 09 |
+| HUD elements | Cargo, Shells (hidden at sea), Compass (+region on entry), Action prompts, Activity log/chat, Speed (transient), Hint pill — states per relevance matrix | 02, 04, 05, 03 |
+| HUD footprint | ≤3% at rest by glyph bounds (1.6% as specified), no plates at rest | review gate |
+| HUD states | Hidden · Ambient (no plate, outlined cream glyphs 92%) · Focused (Ink Glass `#33273B` @ 70%, r10, 1.2×, 150 ms) · peek Tab/LB | 08, 09 |
+| Surfaces | Paper = `#FFF6E3`, 2 px `#6B4A35`, r14 (screens) | 08, 09 |
 | Type (1080p, S = 1) | screen title 28/600 · heading 22/600 · body 20/500 · small 18/500 (floor) · glyph 13–15/800 inside keycaps · mock fonts Fredoka (titles) + Nunito (all else); doc 09 picks the shipping pair | 08, 09 |
 | Harbour places | Fishmonger (sell) 600×420 · Shipyard (fit + paint) full-screen, rail 560×880 · Inn crew board (hire) 640×370 · confirm 420×190; ≤2 clicks + 1 confirm ≥100 | 05, 11, 04 |
 | Crew panel / Journal | 520×330 / 720×400 | 04, 03 |

@@ -17,7 +17,8 @@
 | P-7 | **Upgrades are objects, not numbers.** Progression that only raises a stat feels like a shop list. Fitting physical items under real limits (size, weight) creates a small, readable decision, and it is visible on the boat. | Each upgrade has a model in the world and at least one constraint that can block it. | Owner FB-5 |
 | P-8 | **Management without spreadsheets.** One meter (load), one delta line, reasons in words. Every edit is free to undo. | Count numbers on the fitting screen: ≤ 6 visible at once. | Owner FB-5 + P3 pillar |
 | P-9 | **Self-expression needs a home.** If players are seen by others (harbour hangout), they need a place to make the boat theirs: paint, sail, pennant, name. | The cosmetic entry point is reachable from the place the boat is already being worked on. | Owner FB-6 |
-| P-10 | **Two surfaces, one family.** Over the world: Ink Glass (70% ink, cream text). Screens: Paper (opaque, thin frame). One radius family. | No third panel style in any mock. | Self-review FB-7 |
+| P-10 | **Two surfaces, one family.** Over the world at rest: no plate (outlined cream glyphs); a Focused element gains Ink Glass (70% ink). Screens: Paper (opaque, thin frame). One radius family. | No plate on the resting HUD; no third panel style. | FB-7, revised by FB-8 |
+| P-12 | **Attention follows relevance.** Hidden / Ambient / Focused per context, each Focused state with a trigger and exit; peek so nothing is withheld. | Relevance matrix exists; resting screenshot has 0 Focused elements. | FB-8, `/clean-ui` |
 | P-11 | **Never colour alone.** Every state has a shape or word too: pad glyph letters, crew names + slot numbers, hatched overflow, "Full". | Greyscale screenshot still reads. | Accessibility baseline |
 
 ## 2. Owner feedback log (with reflection: what else it implies)
@@ -83,7 +84,9 @@
 - Compiled into the reusable skill `.claude/skills/clean-ui/` (SKILL.md + principles + relevance-matrix template).
   Run `/clean-ui` before any UI design or review.
 - Supersedes P-10's "Ink Glass over the world" for resting HUD: plates are now a *focus signal*, not a legibility
-  crutch. Doc 10 and the mocks still use the plates until the `/clean-ui` pass on Little Ocean lands.
+  crutch. Applied to Little Ocean (doc 10 relevance matrix + mocks): resting HUD has no plates, Shells hidden at sea,
+  cargo Focused 6 s when full, chat box only on Enter, peek on Tab/LB, "Always backed" HUD style for players who
+  prefer plates.
 
 **FB-9 — "Cosmetics need more than colour: placeable objects on per-frame slots, without bloat" (2026-11-26)**
 - Done: Shipyard tabs are Fit · Paint · Decor. Decor points are per hull (Skiff 5, Cutter 7: masthead, roof, rail,
@@ -134,3 +137,4 @@ by side with a shipped PC reference · greyscale pass · white-sky and dusk cont
 |---|---|---|
 | 2026-11-26 | Created from owner UX pass FB-1…FB-6 + self-review FB-7 | ux-designer |
 | 2026-11-26 | FB-8 (attention follows relevance → `/clean-ui` skill), FB-9 (decor points) | ux-designer |
+| 2026-11-26 | `/clean-ui` pass applied to doc 10 + mocks; P-10 revised, P-12 added | ux-designer |

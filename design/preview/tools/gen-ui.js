@@ -79,9 +79,9 @@ const SAIL_PAD = [['pad:LS', 'Sail'], ['pad:B', 'Anchor'], ['pad:View', 'Crew ·
 function cargo(load, cap, o = {}) {
   const full = load >= cap;
   const w = Math.round(120 * Math.min(1, load / cap));
-  return `<div class="lo-glass lo-cargo" style="${css(o.pos || { left: 32, top: 32 })}">${ic(full ? 'box' : 'fish')}<span class="lo-track${full ? ' lo-track--full' : ''}"><i style="width:${w}px"></i></span><b class="lo-num">${full ? 'Full' : `${load}/${cap}`}</b>${o.plus ? `<span class="lo-plus">+1</span>` : ''}</div>`;
+  return `<div class="lo-glass lo-cargo ${o.cls || ''}" style="${css(o.pos || { left: 32, top: 32 })}">${ic(full ? 'box' : 'fish')}<span class="lo-track${full ? ' lo-track--full' : ''}"><i style="width:${w}px"></i></span><b class="lo-num">${full ? 'Full' : `${load}/${cap}`}</b>${o.plus ? `<span class="lo-plus">+1</span>` : ''}</div>`;
 }
-const shells = (n, o = {}) => `<div class="lo-glass lo-shells" style="${css(o.pos || { right: 32, top: 32 })}">${ic('shell')}<b class="lo-num">${n.toLocaleString('en-US')}</b>${o.plus ? `<span class="lo-plus lo-plus--s">+${o.plus}</span>` : ''}</div>`;
+const shells = (n, o = {}) => `<div class="lo-glass lo-shells ${o.cls || ''}" style="${css(o.pos || { right: 32, top: 32 })}">${ic('shell')}<b class="lo-num">${n.toLocaleString('en-US')}</b>${o.plus ? `<span class="lo-plus lo-plus--s">+${o.plus}</span>` : ''}</div>`;
 // heading in degrees (0 = N); markers [{deg, icon, amber, label}]
 function compass(heading, markers = [], o = {}) {
   const W = 420, span = 180, ppd = W / span; let s = '';
@@ -97,7 +97,7 @@ function compass(heading, markers = [], o = {}) {
     s += `<span class="lo-cmp-m${m.amber ? ' lo-cmp-m--amber' : ''}" style="left:${W / 2 + rel * ppd}px">${ic(m.icon, 18)}${edge ? `<em>${rel < 0 ? '‹' : '›'}</em>` : ''}</span>`;
   }
   const sub = o.sub ? `<div class="lo-cmp-sub${o.subAmber ? ' lo-cmp-sub--amber' : ''}">${o.sub}</div>` : '';
-  return `<div class="lo-cmp"><div class="lo-glass lo-cmp-strip">${s}</div><span class="lo-cmp-caret"></span>${sub}</div>`;
+  return `<div class="lo-cmp ${o.cls || ''}"><div class="lo-glass lo-cmp-strip">${s}</div><span class="lo-cmp-caret"></span>${sub}</div>`;
 }
 // Activity log. lines: [{who, text, tag, age}] newest last. open=true shows the full box.
 function log(lines, o = {}) {
@@ -119,18 +119,22 @@ const head = (title, line, right = '') => `<div class="lo-ph"><h5>${esc(title)}<
 const btn = (t, kind = '', extra = '') => `<span class="lo-btn ${kind ? 'lo-btn--' + kind : ''}"${extra}>${t}</span>`;
 
 /* ------------------------------------------------------------------ frames */
+// HUD at sea. Default = Ambient (no plates). opt.focus: list of elements in the Focused state
+// ('cargo','shells','bar','compass'); opt.peek focuses everything. Shells are Hidden at sea unless focused or lifting.
 function hudSailing(opt = {}) {
-  const pad = opt.pad;
-  return [
-    cargo(opt.load ?? 23, opt.cap ?? 32, { plus: opt.plus }),
+  const pad = opt.pad, F = (k) => (opt.peek || (opt.focus || []).includes(k) ? 'lo-focus' : '');
+  const showShells = opt.peek || (opt.focus || []).includes('shells') || opt.shellsPlus;
+  return `<div class="lo-amb">` + [
+    cargo(opt.load ?? 23, opt.cap ?? 32, { plus: opt.plus, cls: F('cargo') }),
     compass(opt.heading ?? 35, [{ deg: 200, icon: 'harbour' }, { deg: 62, icon: 'rock' }, ...(opt.ping ? [{ deg: 52, icon: 'whale', amber: true }] : [])],
-      { sub: opt.sub, subAmber: opt.subAmber }),
-    shells(opt.shells ?? 158, { plus: opt.shellsPlus }),
+      { sub: opt.sub, subAmber: opt.subAmber, cls: F('compass') }),
+    showShells ? shells(opt.shells ?? 158, { plus: opt.shellsPlus, cls: F('shells') }) : '',
     opt.log === false ? '' : log(opt.lines || [{ who: 'Pip', text: 'landed a Harbour mackerel', tag: 'new' }], { open: opt.logOpen, tab: opt.tab, input: opt.input }),
-    bar(opt.bar || (pad ? SAIL_PAD : SAIL_KB)),
+    bar(opt.bar || (pad ? SAIL_PAD : SAIL_KB), { cls: F('bar') }),
     opt.speed ? speed(...opt.speed) : '',
     opt.hint ? hint(opt.hint) : '',
-  ].join('');
+    opt.peekTag ? `<div class="lo-peektag">${key('Tab')} held · peek</div>` : '',
+  ].join('') + `</div>`;
 }
 
 function heroOverlay() {
@@ -152,8 +156,8 @@ function fishmonger(state) {
       <div class="lo-pf"><span class="lo-dim2">${n} fish</span><span class="lo-total">Total <b>${total}</b> ${ic('shell', 22)}</span>${btn('Sell all', 'pri')}</div>`;
   }
   const panel = paper({ left: 660, top: 250, width: 600, height: state === 'summary' ? 300 : 420 }, head('Fishmonger', state === 'empty' ? 'Come back with a catch, dear.' : 'Fine catch today!') + body);
-  const b = state === 'summary' ? bar([['Click', 'Skip']]) : bar([['E', 'Sell all'], ['Esc', 'Back']]);
-  return world('ui_bg_harbour', panel + shells(state === 'summary' ? 158 + total : 158, { plus: state === 'summary' ? total : 0 }) + b, { dim: 0.32 });
+  const b = state === 'summary' ? bar([['Click', 'Skip']], { cls: 'lo-focus' }) : bar([['E', 'Sell all'], ['Esc', 'Back']], { cls: 'lo-focus' });
+  return world('ui_bg_harbour', panel + shells(state === 'summary' ? 158 + total : 158, { plus: state === 'summary' ? total : 0, cls: 'lo-focus' }) + b, { dim: 0.32 });
 }
 
 /* --- Shipyard (Fit) */
@@ -189,7 +193,7 @@ function loadbar(load, limit, hullName) {
   <div class="lo-load-t"><i style="width:${Math.round(W * fill)}px"></i>${over ? `<s style="left:${W}px;width:${Math.round(W * over / limit)}px"></s>` : ''}</div></div>`;
 }
 function yardTop(tab, shellsN) {
-  return `<div class="lo-yard-top"><h4>Shipyard</h4><div class="lo-tabs"><span class="${tab === 'fit' ? 'on' : ''}">${ic('crate', 18)} Fit</span><span class="${tab === 'paint' ? 'on' : ''}">${ic('brush', 18)} Paint</span><span class="${tab === 'decor' ? 'on' : ''}">${ic('flag', 18)} Decor</span></div></div>` + shells(shellsN, { pos: { right: 32, top: 40 } });
+  return `<div class="lo-yard-top"><h4>Shipyard</h4><div class="lo-tabs"><span class="${tab === 'fit' ? 'on' : ''}">${ic('crate', 18)} Fit</span><span class="${tab === 'paint' ? 'on' : ''}">${ic('brush', 18)} Paint</span><span class="${tab === 'decor' ? 'on' : ''}">${ic('flag', 18)} Decor</span></div></div>` + shells(shellsN, { pos: { right: 32, top: 32 }, cls: 'lo-focus' });
 }
 function yardFit(state) {
   let slots, rows, load, limit, delta, reason, shellsN, ghost = '';
@@ -242,8 +246,8 @@ function crewBoard(state) {
     (berths === 3 ? `<div class="lo-cb lo-cb--empty"><span class="lo-berth">${ic('bunk', 28)}</span><b>Free berth</b><small>#3</small></div>` : '');
   const cand = `<div class="lo-cand">${dummy('Tomo', 56)}<div><b>Tomo</b><q>Points at whales before anyone else sees them.</q><small>Steady hands · one-off fee, no wages</small></div>
     <div class="lo-cand-r">${state === 'nobunk' ? `${btn('Hire', 'off')}<small class="lo-why">${ic('bunk', 14)} No free bunk. The shipyard can fit one.</small>` : `${btn(`Hire · ${ic('shell', 16)} 50`, 'pri')}`}</div></div>`;
-  const panel = paper({ left: 640, top: 250, width: 640, height: state === 'nobunk' ? 350 : 370 }, head('Crew board', '', `<span class="lo-ph-r">Berths ${aboard.length} / ${berths}</span>`) + `<div class="lo-cbrow">${cards}</div><h6 class="lo-h6p">Looking for a boat</h6>${cand}`);
-  return world('ui_bg_harbour', panel + shells(68) + bar(state === 'nobunk' ? [['Esc', 'Back']] : [['E', 'Hire'], ['Esc', 'Back']]), { dim: 0.32, imgStyle: 'left:-300px;width:2400px;height:1350px;top:-150px' });
+  const panel = paper({ left: 640, top: 250, width: 640, height: state === 'nobunk' ? 392 : 370 }, head('Crew board', '', `<span class="lo-ph-r">Berths ${aboard.length} / ${berths}</span>`) + `<div class="lo-cbrow">${cards}</div><h6 class="lo-h6p">Looking for a boat</h6>${cand}`);
+  return world('ui_bg_harbour', panel + shells(68, { cls: 'lo-focus' }) + bar(state === 'nobunk' ? [['Esc', 'Back']] : [['E', 'Hire'], ['Esc', 'Back']]), { dim: 0.32, imgStyle: 'left:-300px;width:2400px;height:1350px;top:-150px' });
 }
 const dummy = (n, h) => `<svg class="lo-dummy" width="${h * 0.75}" height="${h}" viewBox="0 0 48 64" aria-hidden="true"><use href="#lo-d-${n}"/></svg>`;
 
@@ -267,8 +271,8 @@ function pauseSettings() {
   const slider = (v, lab) => `<span class="lo-sl"><i style="width:${v}%"></i><b style="left:${v}%"></b></span><em>${lab}</em>`;
   const set = paper({ left: 488, top: 200, width: 720, height: 500 }, `<div class="lo-ptabs lo-ptabs--set"><span class="on">Display</span><span>Audio</span><span>Controls</span><span>Accessibility</span></div>
     ${row('UI scale', slider(29, '100%'))}${row('HUD fade when idle', seg(['Off', '8 s', '20 s'], '8 s'))}${row('Action bar', seg(['Full', 'Context', 'Off'], 'Full'))}
-    ${row('Activity log lines', slider(50, '12 s'))}${row('HUD backing opacity', slider(0, '70%'))}${row('Button prompts', seg(['Auto', 'Keyboard', 'Xbox', 'PlayStation'], 'Auto'))}<p class="lo-note">Changes preview live behind this panel.</p>`);
-  return world('ui_bg_day', menu + set + bar([['Esc', 'Back'], ['Enter', 'Select']]), { dim: 0.42 });
+    ${row('Activity log lines', slider(50, '12 s'))}${row('HUD style', seg(['Ambient', 'Always backed'], 'Ambient'))}${row('Button prompts', seg(['Auto', 'Keyboard', 'Xbox', 'PlayStation'], 'Auto'))}<p class="lo-note">Changes preview live behind this panel.</p>`);
+  return world('ui_bg_day', menu + set + bar([['Esc', 'Back'], ['Enter', 'Select']], { cls: 'lo-focus' }), { dim: 0.42 });
 }
 
 /* --- Companion 512x320 */
@@ -309,17 +313,21 @@ function section() {
 <li><b>Paint and Decor.</b> Colours and hull patterns, plus small objects (flag, roof decor, lamps, figurehead, name board) on the decor points of each hull frame: Skiff 5, Cutter 7. Looks only.</li></ul>
 <p class="lo-muted">Lessons and checklists: <code>design/ux/ui-knowledge.md</code>. Spec: docs 10 and 11. Backgrounds are 1080p renders of the live preview scene, so the scale is true.</p></details>`;
 
-  const s1 = screen('hud', 1, 'Sailing HUD (The Shallows)', 'Four small things while you sail: hold, Shells, compass, and the keys. The log speaks only when something new happens. Everything else is one key away.',
+  const s1 = screen('hud', 1, 'Sailing HUD (The Shallows)', 'Attention follows relevance (<code>/clean-ui</code>). At rest everything is Ambient: no plates, outlined text on the world, Shells hidden. An element gains its plate and grows only while it matters, then settles back by itself.',
     fig(world('ui_bg_day', hudSailing({ sub: 'The Shallows', lines: [{ who: 'Mabel', text: 'landed a Sand sprat', fade: 0.5 }, { who: 'Pip', text: 'landed a Harbour mackerel', tag: 'new' }] })),
-      '<b>A.</b> Just after entering R1: region name shows for 6 s, two log lines (the older one fading). Persistent HUD ≈ 2.2% of the frame.') +
-    `<div class="lo-row2">${fig(world('ui_bg_dusk', hudSailing({ load: 32, cap: 32, shells: 158, heading: 210, bar: SAIL_PAD, pad: true, logOpen: true, tab: 'All',
-      lines: [{ who: 'Tomo', text: 'landed a Sun flounder', tag: 'uncommon' }, { text: 'Hold is half full' }, { who: 'Ana', text: 'whales by the lighthouse!', chat: 1 }, { who: 'Pip', text: 'landed a Blue wrasse', tag: 'new' }, { text: "Hold full. The crew's resting." }],
-      speed: [6, 4], hint: 'Head home to sell' })), '<b>B.</b> Dusk, gamepad, hold full, log opened (D-pad up) with tabs. The speed readout is showing because the throttle just changed.')}
+      '<b>A. Resting state.</b> Cargo, compass and key prompts are Ambient; Shells are hidden at sea; two log lines drift up and fade. The region name shows for 6 s on entry. Nothing on screen has a backing block.') +
+    `<div class="lo-row2">${fig(world('ui_bg_dusk', hudSailing({ load: 32, cap: 32, heading: 210, bar: SAIL_PAD, pad: true, focus: ['cargo'],
+      lines: [{ text: "Hold full. The crew's resting." }], speed: [6, 4], hint: 'Head home to sell' })), '<b>B. Hold full (decision moment).</b> Cargo is Focused for 6 s (plate, 1.2×), then returns to Ambient. Dusk + gamepad: outlined prompts stay legible.')}
     ${fig(world('ui_bg_day', hudSailing({ heading: 40, ping: true, sub: '<b>Whale pod</b> · NE · 240 m', subAmber: true, lines: [{ who: 'Ana', text: 'whales by the lighthouse!', chat: 1 }, { who: 'Kai', text: 'on my way', chat: 1 }], logOpen: true, tab: 'Chat', input: 'omw, see you there', speed: [0, 0, { anchored: true }] })),
-      '<b>C.</b> Whale ping: amber compass marker + subtitle (the log line sits in the All tab). Chat tab open with the input row (paper only, D3). Anchored.')}</div>` +
-    SPEC([['Cargo', 'top-left 32/32 · Ink Glass 232×40 · fish 24 · bar 120×8 · count 18/700 tabular · at full: box icon + "Full", striped bar'], ['Shells', 'top-right · auto×40 · shell 24 · 20/700'],
-      ['Compass', 'top-centre 420×28 · letters 15/800 · markers 18 · region pill on entry only (6 s)'], ['Action bar', 'bottom-left 32/32 · h 40 · keycap/pad 24 · verb 18/700 · gap 20 · click = action'],
-      ['Log', 'above bar, ≤440 wide, ≤6 lines · 18 px / 24 leading · line life 12 s · open: hover / L / D-pad up · tabs All · Crew · Chat'], ['Speed', 'bottom-right 112×40 · only while throttle changes (+3 s) or anchored'], ['Hint', 'bottom-centre, 72 px up · max one · once each']]));
+      '<b>C. Enter pressed: chat opens.</b> The box, history and input appear only now (Focused). Esc or send returns to bare fading lines. The ping marker is the one amber thing on the compass.')}</div>` +
+    `<div class="lo-row2">${fig(world('ui_bg_day', hudSailing({ peek: true, peekTag: true, sub: 'The Shallows', shells: 158, lines: [{ who: 'Pip', text: 'landed a Harbour mackerel', tag: 'new' }] })),
+      '<b>D. Peek (hold Tab / LB).</b> Everything Focused, including Shells, for as long as it is held. Hiding never withholds information.')}
+    ${fig(world('ui_bg_day', hudSailing({ shellsPlus: 84, shells: 242, focus: [], lines: [{ text: 'Sold 20 fish for 84 Shells' }] })),
+      '<b>E. Value change.</b> After a sale the Shells counter appears for a moment with "+84", then fades away again at sea.')}</div>` +
+    SPEC([['States', 'Hidden · Ambient (no plate; cream glyphs, 1–2 px ink outline + soft shadow, 92%) · Focused (Ink Glass 70% plate, 1.2×, 150 ms ease) · Interruptive: none in normal play'],
+      ['Cargo', 'Ambient top-left · Focused 6 s when the hold fills, and in the Fishmonger'], ['Shells', 'Hidden at sea · "+N" lift on change · Focused (plate, 1.2×) in Fishmonger, Shipyard, Inn · peek'],
+      ['Compass', 'Ambient ticks + letters, no strip · ping marker amber · region pill 6 s on entry'], ['Prompts', 'Ambient outlined keycaps · Focused inside screens (screen prompts) · Settings: Full / Context / Off'],
+      ['Log + chat', 'Ambient lines fade 12 s, no box · hover/L = history (Focused) · Enter = chat box + input (Focused) · Esc closes'], ['Peek', 'hold Tab / LB: all Focused while held'], ['Speed', 'Ambient, only while the throttle changes (+3 s) or anchored']]));
 
   const s2 = screen('fish', 2, 'Fishmonger: sell', 'Selling only. One button sells the whole hold at fixed prices. Close with Esc. There is no ✕ button.',
     fig(fishmonger('rows'), '<b>A.</b> Docked, E pressed: the catch table and Sell all. The bar shows the screen\'s own prompts.') +
@@ -345,11 +353,11 @@ function section() {
     SPEC([['Panel', 'Paper 640×420 · aboard row (dummy + name + slot) · free berths · candidates'], ['Rules', 'fee 50 · needs a berth · crew without a berth wait at the Inn, never lost (04, 11)']]));
 
   const s6 = screen('crew', 6, 'Crew panel and journal', 'Crew information lives here now, not on the HUD. Both are read-only, open over the sea, and close with the same key.',
-    `<div class="lo-row2">${fig(world('ui_bg_day', crewPanel() + bar([['C', 'Close'], ['J', 'Journal']]) + cargo(23, 32) + shells(158), { dim: 0.3 }), '<b>A.</b> Crew (C): name + slot number + state glyph and word, efficiency as words, never a number.')}
-    ${fig(world('ui_bg_day', journal() + bar([['J', 'Close'], ['Q+E', 'Tab']]) + cargo(23, 32) + shells(158), { dim: 0.3 }), '<b>B.</b> Journal (J): what you have seen. Silhouettes for the rest, and no percentages.')}</div>`);
+    `<div class="lo-row2">${fig(world('ui_bg_day', crewPanel() + bar([['C', 'Close'], ['J', 'Journal']], { cls: 'lo-focus' }) + `<div class="lo-amb">${cargo(23, 32)}</div>`, { dim: 0.3 }), '<b>A.</b> Crew (C): name + slot number + state glyph and word, efficiency as words, never a number.')}
+    ${fig(world('ui_bg_day', journal() + bar([['J', 'Close'], ['Q+E', 'Tab']], { cls: 'lo-focus' }) + `<div class="lo-amb">${cargo(23, 32)}</div>`, { dim: 0.3 }), '<b>B.</b> Journal (J): what you have seen. Silhouettes for the rest, and no percentages.')}</div>`);
 
   const s7 = screen('menu', 7, 'Pause menu and settings', 'Missing from the first draft. The world keeps moving behind the menu in solo play. HUD comfort settings live together under Display.',
-    fig(pauseSettings(), '<b>A.</b> Esc → Settings → Display: UI scale 80–150%, HUD fade, Action bar Full / Context / Off, log line life, HUD backing opacity (70–85%, never lower), prompt style.'));
+    fig(pauseSettings(), '<b>A.</b> Esc → Settings → Display: UI scale 80–150%, HUD fade, Action bar Full / Context / Off, log line life, HUD style Ambient / Always backed (plates on every element, for players who prefer them), prompt style.'));
 
   const s8 = screen('swell', 8, 'Swell gate (no keel yet)', 'Show "not yet", never "game over". One hint, one log line, and the reason points at the Shipyard.',
     fig(world('ui_bg_day', hudSailing({ heading: 2, lines: [{ who: 'Mabel', text: "says the swell's too big for the Skiff" }], hint: "The swell's too big for the Skiff. A keel would help.", speed: [2, 2] }), { imgStyle: 'filter:saturate(.9) brightness(.96)' }),
@@ -454,6 +462,21 @@ const STYLE = `
 .lo-speed{height:40px;display:flex;align-items:center;gap:10px;padding:0 14px;font-size:18px;font-weight:700}
 .lo-notch{display:flex;gap:3px;align-items:flex-end}.lo-notch i{width:6px;height:14px;border-radius:2px;background:rgba(255,246,227,.25)}.lo-notch i.on{background:#FFF6E3}
 .lo-hint{left:50%;bottom:112px;transform:translateX(-50%);padding:8px 20px;border-radius:20px;font-size:20px;font-weight:700;white-space:nowrap}
+/* Attention states (clean-ui): Ambient = no plate, outlined glyphs; Focused = plate + 1.2x */
+.lo-amb{position:absolute;inset:0}
+.lo-amb .lo-glass:not(.lo-focus):not(.lo-log--open):not(.lo-hint),.lo-amb .lo-bar:not(.lo-focus),.lo-amb .lo-cmp:not(.lo-focus) .lo-cmp-strip,.lo-amb .lo-cmp:not(.lo-focus) .lo-cmp-sub,.lo-amb .lo-log:not(.lo-log--open) .lo-line{background:none}
+.lo-amb .lo-glass:not(.lo-focus):not(.lo-log--open):not(.lo-hint),.lo-amb .lo-bar:not(.lo-focus),.lo-amb .lo-cmp:not(.lo-focus),.lo-amb .lo-log:not(.lo-log--open){text-shadow:0 0 2px rgba(28,20,36,.95),0 0 1px rgba(28,20,36,.95),0 1px 4px rgba(28,20,36,.6);opacity:.92}
+.lo-amb .lo-glass:not(.lo-focus):not(.lo-log--open):not(.lo-hint) svg,.lo-amb .lo-bar:not(.lo-focus) svg,.lo-amb .lo-cmp:not(.lo-focus) svg{filter:drop-shadow(0 0 1.2px rgba(28,20,36,.95)) drop-shadow(0 1px 2px rgba(28,20,36,.6))}
+.lo-amb .lo-cmp:not(.lo-focus) .lo-cmp-t,.lo-amb .lo-glass:not(.lo-focus) .lo-track{box-shadow:0 0 0 1px rgba(28,20,36,.55),0 1px 3px rgba(28,20,36,.45)}
+.lo-amb .lo-glass:not(.lo-focus) .lo-track{background:rgba(255,246,227,.32)}
+.lo-amb .lo-cmp:not(.lo-focus) .lo-cmp-strip{border-radius:0;overflow:visible}
+.lo-amb .lo-bar:not(.lo-focus) .lo-key{background:none;color:#FFF6E3;box-shadow:0 0 0 1.5px #FFF6E3,0 0 0 2.5px rgba(28,20,36,.55);text-shadow:inherit}
+.lo-amb .lo-bar:not(.lo-focus) .lo-pad{background:rgba(28,20,36,.25)}
+.lo-amb .lo-bar:not(.lo-focus) .lo-pad--n{border-color:#FFF6E3}
+.lo-focus{transform:scale(1.2)}
+.lo-amb .lo-cmp.lo-focus .lo-cmp-strip{background:rgba(51,39,59,.70);text-shadow:none;opacity:1}
+.lo-cargo.lo-focus{transform-origin:0 0}.lo-shells.lo-focus{transform-origin:100% 0}.lo-bar.lo-focus{transform-origin:0 100%}.lo-cmp.lo-focus{transform:none}
+.lo-peektag{position:absolute;left:50%;bottom:112px;transform:translateX(-50%);display:flex;gap:8px;align-items:center;color:#FFF6E3;font-size:18px;font-weight:700;text-shadow:0 0 2px rgba(28,20,36,.95),0 1px 4px rgba(28,20,36,.6)}
 /* Paper */
 .lo-paper{position:absolute;background:#FFF6E3;border:2px solid #6B4A35;border-radius:14px;box-shadow:0 4px 16px rgba(51,39,59,.25);color:#33273B;overflow:hidden}
 .lo-ph{display:flex;align-items:baseline;gap:14px;padding:18px 24px 12px;border-bottom:1px solid #E4D5B7}
