@@ -34,8 +34,9 @@ note handed across a counter, never a dashboard.
 2. **Attention follows relevance (owner UX pass, `/clean-ui`)**: every HUD element is in one state at a time, chosen
    by what the player is doing. Plates are a *focus signal*, not a legibility crutch.
    - **Hidden**: not drawn (reachable by peek or its own screen).
-   - **Ambient** (default at sea): no plate. Cream `#FFF6E3` glyphs at 92% with a 1–2 px Ink outline and soft shadow
-     (§Formulas F3). Keycaps are cream outlines, not filled chips. No motion while values are static.
+   - **Ambient** (default at sea): no plate, no outline, no shadow. Cream `#FFF6E3` glyphs at 92% so the HUD reads as
+     printed into the scene, not floating above it (owner pass). Keyboard keycaps are always **solid** cream chips with
+     ink letters, so the controls read at a glance. No motion while values are static. Legibility risk: §Formulas F3.
    - **Focused**: Ink Glass plate (Aubergine Ink `#33273B` at 70%, radius 10 px), scale 1.2× from its anchor corner,
      eases in over 150 ms with no bounce. It needs a named trigger and exit (§HUD relevance matrix).
    - **Interruptive**: none in normal play.
@@ -51,7 +52,8 @@ note handed across a counter, never a dashboard.
    is doc 05's single confirm step for purchases ≥ 100 Shells (D8).
 6. **No nagging (CONFIRMED §5 A5)**: no repeating prompts, no "you could be earning" text, no badge counters.
 7. **Peek**: hold `Tab` / `LB` and every element is Focused (including Shells) for as long as it is held. `H` hides
-   all. Settings → Accessibility → HUD style: **Ambient** (default) or **Always backed** (plates on every element).
+   all. Settings → Accessibility → HUD style: **Ambient** (default), **Outlined** (ink outline on glyphs) or **Always backed**
+   (plates on every element).
 
 ### HUD relevance matrix (sailing contexts; `/clean-ui` method)
 H = Hidden · A = Ambient · F = Focused. Each non-default cell names its trigger → exit.
@@ -93,14 +95,14 @@ Budget: at rest, Focused = 0; per screen region ≤ 1 Focused element; Interrupt
   once seen, Beacon Amber ping). No strip at rest. **Region name** (18 px/700) shows for 6 s on entry, then hides.
 - **Speed readout** (bottom-right, doc 02): `6 kn` + 5-notch throttle ladder, Ambient, only while the throttle
   changes and 3 s after; "Anchored" stays while `Anchored`.
-- **Action prompts** (bottom-left): one row of key/button glyph + verb (18 px/700, gap 20 px). Keycaps 24 px as cream
-  outlines; gamepad discs keep their letter inside (A green, B red, X blue, Y yellow) so they read without colour.
+- **Action prompts** (bottom-left): one row of key/button glyph + verb (18 px/700, gap 20 px). Keycaps 24 px, always
+  solid cream with ink letters; gamepad discs keep their letter inside (A green, B red, X blue, Y yellow) so they read without colour.
   - Sailing: `WASD` Sail · `Space` Anchor · `C` Crew · `J` Journal · `Enter` Chat · `Esc` Menu (Ambient).
   - Docked at a counter: `E` Talk appears first as a Focused cream chip until used.
   - Inside a screen: the bar shows that screen's prompts and is Focused (plate).
   - Every item is also a mouse button (hover = Focused). Settings → Action bar: Full · Context only · Off.
 - **Activity log + chat** (bottom-left, above the prompts, ≤440 px wide, ≤6 lines):
-  - Ambient: each new line appears as outlined text, stays 12 s, fades over 1 s. No box, ever, unless asked.
+  - Ambient: each new line appears as plain cream text (no box, no outline), stays 12 s, fades over 1 s. No box, ever, unless asked.
   - Hover, `L` or D-pad up: history box (Focused, Ink Glass) with the last 20 lines and tabs `All · Crew · Chat`;
     closes on mouse-out / `L` / 4 s idle.
   - **Enter: chat box** (Focused): history + 32 px input row; Enter sends, Esc closes back to Ambient lines.
@@ -212,7 +214,7 @@ Earned cosmetics show a small stamp on the entry that unlocked them (11).
 Paper 360×420 column at the left, settings panel 720×500 beside it, over the dimmed world (the game keeps running behind it in solo; nothing
 is lost by pausing). Items: Resume · Settings · Companion window (F9) · Controls · Quit to desktop. Settings tabs:
 Display (UI scale 80–150%, HUD fade, Action bar Full/Context/Off), Audio, Controls (rebind, glyph style),
-Accessibility (text scale, reduce motion/flashes, hints off, HUD style Ambient / Always backed). Each change previews live.
+Accessibility (text scale, reduce motion/flashes, hints off, HUD style Ambient / Outlined / Always backed). Each change previews live.
 
 ### Encounter ping and chat — MOCK-UP ONLY except the solo whale ping (CONFIRMED owner D3)
 - **Ping**: Beacon Amber whale glyph on the compass + subtitle under the compass "Whale pod · NE · 240 m" (18 px,
@@ -254,9 +256,12 @@ costs, hire fee), 03 (`RegionId`, discoveries, `TransitionBand`), 02 (`BoatSpeed
   in this doc is multiplied by S. Text px = base × S. Examples: 1440p, 1.0 → S 1.33 → body 27 px; 4K, 1.0 → S 2.0 →
   body 40 px; 1080p, 1.25 → body 25 px. At `UIScale` < 1.0 text may go below the 18 px floor by player choice
   (XAG 101 allows smaller at the player's discretion); the default never does.
-- **F3 Legibility.** *Ambient* (no plate): legibility comes from the glyph outline (Ink, 1–2 px at 95%) plus a soft
-  shadow (0 1 4 px, Ink 60%). Contrast ratios assume a flat background, so this is checked by screenshot (AC 4):
-  the brightest sky/foam and the darkest dusk frame, plus greyscale. *Focused* (Ink Glass plate): composite C = α·Ink + (1−α)·B. Worst case B = white `#FFFFFF`, α = 0.70 →
+- **F3 Legibility.** *Ambient* (no plate, no outline): cream text relies on the scene behind it. Contrast ratios assume
+  a flat background, so this is checked by screenshot (AC 4): the brightest sky/foam and the darkest dusk frame, plus
+  greyscale. **Known risk**: over white wake or foam (L > 0.85) cream text nearly vanishes (seen in the 2026-11-26 mock,
+  where "Anchor" and "Menu" sat over the wake). Fixes to test in that order: (1) camera/placement keeps the bottom-left
+  band off the wake; (2) luma-adaptive tint: glyphs shift toward Ink when the sampled background behind them is
+  bright; (3) last resort: the outline returns as an accessibility option (HUD style "Outlined"). *Focused* (Ink Glass plate): composite C = α·Ink + (1−α)·B. Worst case B = white `#FFFFFF`, α = 0.70 →
   C ≈ `#6E6876`(sRGB 112/104/118, L ≈ 0.15) → cream `#FFF6E3` (L ≈ 0.92) ratio (0.97)/(0.20) ≈ **4.9:1** ≥ 4.5:1.
   α = 0.62 gives ≈ 3.9:1 and fails, so 0.70 is the floor.
 - **F4 HUD footprint at rest** = Σ(glyph bounds of Ambient elements) / (1920×1080). Cargo ≈ 200×24 (4.8k) + compass
@@ -315,7 +320,7 @@ just not touching anything for 8 s (fade) or pressing `H`.
 | Action | KB/M | Gamepad (Xbox labels) |
 |---|---|---|
 | Throttle / steer | W/S, A/D | LT/RT, Left stick |
-| Anchor | Space | B (Open Q 1: 02 says Y) |
+| Anchor | Space | Y (owner, 2026-11-26) |
 | Camera orbit / zoom | RMB drag / wheel | Right stick / RS click cycle |
 | Interact (counter) / confirm | E | A |
 | Crew / Journal | C / J | View → tabs |
@@ -331,8 +336,8 @@ exists on any device (P2).
 ### Accessibility baseline
 - [x] Keyboard-only and gamepad-only complete the full H1 loop (focus ring: 2 px Wisteria outline + 2 px offset).
 - [x] Text: body 20 px, floor 18 px at 1080p (XAG 101 PC minimum), `UIScale` up to 1.5; ink on cream ≥13:1;
-  Focused: cream on Ink Glass ≥4.5:1 over any background; Ambient: outlined glyphs pass the bright/dark screenshot
-  check (F3). Players who want plates everywhere pick HUD style "Always backed".
+  Focused: cream on Ink Glass ≥4.5:1 over any background; Ambient: plain glyphs pass the bright/dark screenshot
+  check (F3), with Outlined as the fallback style. Players who want plates everywhere pick HUD style "Always backed".
 - [x] Not colour alone: cargo full (icon+word), crew identity (name + slot number, crew panel), crew state (glyph +
   word), ping (shape + text), buy state (stamp/label), pad glyphs (letter inside the disc).
 - [x] Colourblind: no red/green pairs carry meaning; validate with Deuteranopia/Protanopia/Tritanopia filters.
@@ -382,7 +387,7 @@ crew+journal 2 d, onboarding hints 1 d, input/remap 2 d, accessibility pass 2 d,
 12. (H3, paper) Chat/ping cards let ≥50% of paper-test players state ping direction and distance within 60 s.
 
 ## Open Questions
-1. Gamepad anchor: Y (02) vs B (10). B also means Back inside screens; Y avoids the overlap. Owner to pick.
+1. ~~Gamepad anchor~~ CLOSED by owner: **Y** (matches 02; B stays Back in screens).
 2. ~~Action bar fade~~ CLOSED by `/clean-ui` pass: prompts are Ambient (outlined, no plate); Settings offer Context only / Off.
 3. Should crew efficiency ever be shown as a number (e.g. tooltip)? PROPOSED: no.
 4. ~~HUD auto-fade~~ CLOSED: replaced by attention states (Ambient at rest, Focused on trigger, peek). Validate by H1

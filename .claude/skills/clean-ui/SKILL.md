@@ -37,7 +37,7 @@ just one picture.
 | State | Purpose | Visual treatment |
 |---|---|---|
 | **Hidden** | Not relevant now | Not drawn. Must be reachable another way (peek key, its screen, hover). |
-| **Ambient** | Background info the player may glance at | No panel or plate. Text and icons sit on the world with a thin dark outline and a soft shadow for legibility. Smaller, slightly translucent (≈75–90%), no saturated accent colour, no motion while static. |
+| **Ambient** | Background info the player may glance at | No panel or plate. Text and icons are printed into the scene: plain light glyphs, slightly translucent (≈85–95%), no saturated accent colour, no motion while static. Prefer no outline or shadow, so the UI belongs to the world instead of popping out of it. Add a thin outline only where screenshots show it fails (bright foam, snow, sky), or as a player option. |
 | **Focused** | Relevant to the current context or action | Gains its backing plate. ≈15–25% larger, full opacity. Eases in over 120–200 ms, with no bounce. |
 | **Interruptive** | Must be seen now (rare: data loss, a timed choice, safety) | Centre or modal, with sound. Budget: almost never in a cozy game. If you reach for it, first ask whether it could be Focused instead. |
 
@@ -52,7 +52,8 @@ Rules:
    while held), plus the element's own screen. Hiding is about attention, not withholding.
 5. **Change is the signal.** Ambient elements stay still. A value change may briefly lift the element (a short
    brighten or a "+N" that rises and fades). It never loops, pulses or blinks while nothing is happening.
-6. **Input reveals its UI.** Text input, lists, inventories and maps appear because the player asked (key,
+6. **Controls stay solid.** Input glyphs (keycaps, button prompts) are always drawn solid, even in an Ambient strip. They are affordances the eye looks for, so they don't go see-through.
+7. **Input reveals its UI.** Text input, lists, inventories and maps appear because the player asked (key,
    click, button), not pre-emptively. Chat box on Enter; log history on hover/hotkey; tooltips on hover/focus.
 
 ## Procedure — designing or reviewing any UI
@@ -83,7 +84,7 @@ Rules:
 - [ ] The resting state of the main play context has no backing plates over the world.
 - [ ] Each Focused/Interruptive state has a trigger *and* an exit; nothing needs manual dismissal unless it is a choice.
 - [ ] A peek or other route exists for every Hidden value.
-- [ ] Ambient text stays legible on the brightest and darkest backgrounds (outline + shadow), and a greyscale shot still reads.
+- [ ] Ambient text stays legible on the brightest and darkest backgrounds in real screenshots (plain first; adaptive tint or outline only where it fails), and a greyscale shot still reads.
 - [ ] Nothing animates while nothing changes. No idle pulses, glows or bobbing badges.
 - [ ] Text input, history and lists appear only on player request.
 - [ ] Sizes fit the platform; a UI scale setting exists; a "hide HUD" and a minimal-HUD option exist.

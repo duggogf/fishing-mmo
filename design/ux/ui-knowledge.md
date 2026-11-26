@@ -96,6 +96,13 @@
 - Guardrail against bloat: one object per point, a small catalogue, curated styles (no free placement), and decor
   is only visible in its own tab.
 
+**FB-10 — "Keycaps always solid; try ambient text with no shadow or outline, so it is imprinted in the world" (2026-11-26)**
+- Done: Ambient = plain cream glyphs at 92%, no outline or shadow; keyboard keycaps always solid. Gamepad anchor = Y.
+- Reflection: outlines make text "pop out" of the scene, the opposite of ambient. Controls are the exception: players
+  look for them, so they stay solid.
+- Risk logged (doc 10 F3): plain cream vanishes over white wake or foam. Fix order: placement, then luma-adaptive tint,
+  then an "Outlined" HUD style option. Folded into `/clean-ui` (Ambient row, rule 6, principles §4).
+
 ## 3. "Looks AI-made" — anti-patterns to avoid
 
 1. Every element in its own rounded card with an icon, a title and a subtitle.

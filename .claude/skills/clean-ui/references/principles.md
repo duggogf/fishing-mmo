@@ -30,7 +30,11 @@ what demotes it, and how it looks while it moves. Typical triggers:
 | Time passes with nothing new | 8–12 s idle | demote: fade lines, dim Ambient, hide transient |
 
 ## 4. Legibility without plates
-Plates are the lazy way to guarantee contrast. Minimal-HUD games instead use, on the glyphs themselves:
+Plates are the lazy way to guarantee contrast. The most immersive option is **plain glyphs printed into the scene**
+(no outline, no shadow): the HUD then feels part of the world rather than a layer above it. It works when
+placement keeps text off the brightest parts of the frame. Test it first. Where screenshots show it failing (white
+foam, snow, bright sky), fix in this order: move the element; use a luma-adaptive tint (glyphs darken when the
+background behind them is bright); and only then add, on the glyphs themselves:
 - a **thin dark outline** (1–2 px at 1080p, ink colour, about 60–80% opacity), and
 - a **soft drop shadow** (0–1 px offset, 3–6 px blur, about 40–60% opacity),
 - with light text (cream/white) at 85–100%. Icons get the same outline.

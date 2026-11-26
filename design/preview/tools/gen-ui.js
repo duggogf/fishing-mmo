@@ -73,7 +73,7 @@ const glyph = (g) => (g.startsWith('pad:') ? pad(g.slice(4)) : g.split('+').map(
 const bar = (items, o = {}) => `<div class="lo-bar ${o.cls || ''}" style="${css(o.pos || { left: 32, bottom: 32 })}">${items.map(([g, v, f = {}]) =>
   `<span class="lo-act${f.hi ? ' lo-act--hi' : ''}${f.hover ? ' lo-act--hover' : ''}">${glyph(g)}<span>${esc(v)}</span></span>`).join('')}</div>`;
 const SAIL_KB = [['W+A+S+D', 'Sail'], ['Space', 'Anchor'], ['C', 'Crew'], ['J', 'Journal'], ['Enter', 'Chat'], ['Esc', 'Menu']];
-const SAIL_PAD = [['pad:LS', 'Sail'], ['pad:B', 'Anchor'], ['pad:View', 'Crew · Journal'], ['pad:↑', 'Log'], ['pad:Menu', 'Menu']];
+const SAIL_PAD = [['pad:LS', 'Sail'], ['pad:Y', 'Anchor'], ['pad:View', 'Crew · Journal'], ['pad:↑', 'Log'], ['pad:Menu', 'Menu']];
 
 /* ------------------------------------------------------------------ HUD widgets */
 function cargo(load, cap, o = {}) {
@@ -313,20 +313,20 @@ function section() {
 <li><b>Paint and Decor.</b> Colours and hull patterns, plus small objects (flag, roof decor, lamps, figurehead, name board) on the decor points of each hull frame: Skiff 5, Cutter 7. Looks only.</li></ul>
 <p class="lo-muted">Lessons and checklists: <code>design/ux/ui-knowledge.md</code>. Spec: docs 10 and 11. Backgrounds are 1080p renders of the live preview scene, so the scale is true.</p></details>`;
 
-  const s1 = screen('hud', 1, 'Sailing HUD (The Shallows)', 'Attention follows relevance (<code>/clean-ui</code>). At rest everything is Ambient: no plates, outlined text on the world, Shells hidden. An element gains its plate and grows only while it matters, then settles back by itself.',
+  const s1 = screen('hud', 1, 'Sailing HUD (The Shallows)', 'Attention follows relevance (<code>/clean-ui</code>). At rest everything is Ambient: no plates and no outlines, so the text sits in the scene rather than on top of it, and Shells are hidden. Keycaps stay solid. An element gains its plate and grows only while it matters, then settles back by itself.',
     fig(world('ui_bg_day', hudSailing({ sub: 'The Shallows', lines: [{ who: 'Mabel', text: 'landed a Sand sprat', fade: 0.5 }, { who: 'Pip', text: 'landed a Harbour mackerel', tag: 'new' }] })),
-      '<b>A. Resting state.</b> Cargo, compass and key prompts are Ambient; Shells are hidden at sea; two log lines drift up and fade. The region name shows for 6 s on entry. Nothing on screen has a backing block.') +
+      '<b>A. Resting state.</b> Cargo, compass and key prompts are Ambient (plain cream text, solid keycaps); Shells are hidden at sea; two log lines drift up and fade. The region name shows for 6 s on entry. Nothing on screen has a backing block.') +
     `<div class="lo-row2">${fig(world('ui_bg_dusk', hudSailing({ load: 32, cap: 32, heading: 210, bar: SAIL_PAD, pad: true, focus: ['cargo'],
-      lines: [{ text: "Hold full. The crew's resting." }], speed: [6, 4], hint: 'Head home to sell' })), '<b>B. Hold full (decision moment).</b> Cargo is Focused for 6 s (plate, 1.2×), then returns to Ambient. Dusk + gamepad: outlined prompts stay legible.')}
+      lines: [{ text: "Hold full. The crew's resting." }], speed: [6, 4], hint: 'Head home to sell' })), '<b>B. Hold full (decision moment).</b> Cargo is Focused for 6 s (plate, 1.2×), then returns to Ambient. Dusk + gamepad (Y = anchor).')}
     ${fig(world('ui_bg_day', hudSailing({ heading: 40, ping: true, sub: '<b>Whale pod</b> · NE · 240 m', subAmber: true, lines: [{ who: 'Ana', text: 'whales by the lighthouse!', chat: 1 }, { who: 'Kai', text: 'on my way', chat: 1 }], logOpen: true, tab: 'Chat', input: 'omw, see you there', speed: [0, 0, { anchored: true }] })),
       '<b>C. Enter pressed: chat opens.</b> The box, history and input appear only now (Focused). Esc or send returns to bare fading lines. The ping marker is the one amber thing on the compass.')}</div>` +
     `<div class="lo-row2">${fig(world('ui_bg_day', hudSailing({ peek: true, peekTag: true, sub: 'The Shallows', shells: 158, lines: [{ who: 'Pip', text: 'landed a Harbour mackerel', tag: 'new' }] })),
       '<b>D. Peek (hold Tab / LB).</b> Everything Focused, including Shells, for as long as it is held. Hiding never withholds information.')}
     ${fig(world('ui_bg_day', hudSailing({ shellsPlus: 84, shells: 242, focus: [], lines: [{ text: 'Sold 20 fish for 84 Shells' }] })),
       '<b>E. Value change.</b> After a sale the Shells counter appears for a moment with "+84", then fades away again at sea.')}</div>` +
-    SPEC([['States', 'Hidden · Ambient (no plate; cream glyphs, 1–2 px ink outline + soft shadow, 92%) · Focused (Ink Glass 70% plate, 1.2×, 150 ms ease) · Interruptive: none in normal play'],
+    SPEC([['States', 'Hidden · Ambient (no plate, no outline or shadow: cream glyphs at 92%, printed into the scene) · Focused (Ink Glass 70% plate, 1.2×, 150 ms ease) · Interruptive: none in normal play'],
       ['Cargo', 'Ambient top-left · Focused 6 s when the hold fills, and in the Fishmonger'], ['Shells', 'Hidden at sea · "+N" lift on change · Focused (plate, 1.2×) in Fishmonger, Shipyard, Inn · peek'],
-      ['Compass', 'Ambient ticks + letters, no strip · ping marker amber · region pill 6 s on entry'], ['Prompts', 'Ambient outlined keycaps · Focused inside screens (screen prompts) · Settings: Full / Context / Off'],
+      ['Compass', 'Ambient ticks + letters, no strip · ping marker amber · region pill 6 s on entry'], ['Prompts', 'Ambient strip, keycaps always solid cream · Focused inside screens (screen prompts) · Settings: Full / Context / Off'],
       ['Log + chat', 'Ambient lines fade 12 s, no box · hover/L = history (Focused) · Enter = chat box + input (Focused) · Esc closes'], ['Peek', 'hold Tab / LB: all Focused while held'], ['Speed', 'Ambient, only while the throttle changes (+3 s) or anchored']]));
 
   const s2 = screen('fish', 2, 'Fishmonger: sell', 'Selling only. One button sells the whole hold at fixed prices. Close with Esc. There is no ✕ button.',
@@ -465,18 +465,18 @@ const STYLE = `
 /* Attention states (clean-ui): Ambient = no plate, outlined glyphs; Focused = plate + 1.2x */
 .lo-amb{position:absolute;inset:0}
 .lo-amb .lo-glass:not(.lo-focus):not(.lo-log--open):not(.lo-hint),.lo-amb .lo-bar:not(.lo-focus),.lo-amb .lo-cmp:not(.lo-focus) .lo-cmp-strip,.lo-amb .lo-cmp:not(.lo-focus) .lo-cmp-sub,.lo-amb .lo-log:not(.lo-log--open) .lo-line{background:none}
-.lo-amb .lo-glass:not(.lo-focus):not(.lo-log--open):not(.lo-hint),.lo-amb .lo-bar:not(.lo-focus),.lo-amb .lo-cmp:not(.lo-focus),.lo-amb .lo-log:not(.lo-log--open){text-shadow:0 0 2px rgba(28,20,36,.95),0 0 1px rgba(28,20,36,.95),0 1px 4px rgba(28,20,36,.6);opacity:.92}
-.lo-amb .lo-glass:not(.lo-focus):not(.lo-log--open):not(.lo-hint) svg,.lo-amb .lo-bar:not(.lo-focus) svg,.lo-amb .lo-cmp:not(.lo-focus) svg{filter:drop-shadow(0 0 1.2px rgba(28,20,36,.95)) drop-shadow(0 1px 2px rgba(28,20,36,.6))}
-.lo-amb .lo-cmp:not(.lo-focus) .lo-cmp-t,.lo-amb .lo-glass:not(.lo-focus) .lo-track{box-shadow:0 0 0 1px rgba(28,20,36,.55),0 1px 3px rgba(28,20,36,.45)}
+.lo-amb .lo-glass:not(.lo-focus):not(.lo-log--open):not(.lo-hint),.lo-amb .lo-bar:not(.lo-focus),.lo-amb .lo-cmp:not(.lo-focus),.lo-amb .lo-log:not(.lo-log--open){text-shadow:none;opacity:.92}
+.lo-amb .lo-glass:not(.lo-focus):not(.lo-log--open):not(.lo-hint) svg,.lo-amb .lo-bar:not(.lo-focus) svg,.lo-amb .lo-cmp:not(.lo-focus) svg{filter:none}
+.lo-amb .lo-cmp:not(.lo-focus) .lo-cmp-t,.lo-amb .lo-glass:not(.lo-focus) .lo-track{box-shadow:none}
 .lo-amb .lo-glass:not(.lo-focus) .lo-track{background:rgba(255,246,227,.32)}
 .lo-amb .lo-cmp:not(.lo-focus) .lo-cmp-strip{border-radius:0;overflow:visible}
-.lo-amb .lo-bar:not(.lo-focus) .lo-key{background:none;color:#FFF6E3;box-shadow:0 0 0 1.5px #FFF6E3,0 0 0 2.5px rgba(28,20,36,.55);text-shadow:inherit}
+.lo-amb .lo-bar:not(.lo-focus) .lo-key{text-shadow:none}
 .lo-amb .lo-bar:not(.lo-focus) .lo-pad{background:rgba(28,20,36,.25)}
 .lo-amb .lo-bar:not(.lo-focus) .lo-pad--n{border-color:#FFF6E3}
 .lo-focus{transform:scale(1.2)}
 .lo-amb .lo-cmp.lo-focus .lo-cmp-strip{background:rgba(51,39,59,.70);text-shadow:none;opacity:1}
 .lo-cargo.lo-focus{transform-origin:0 0}.lo-shells.lo-focus{transform-origin:100% 0}.lo-bar.lo-focus{transform-origin:0 100%}.lo-cmp.lo-focus{transform:none}
-.lo-peektag{position:absolute;left:50%;bottom:112px;transform:translateX(-50%);display:flex;gap:8px;align-items:center;color:#FFF6E3;font-size:18px;font-weight:700;text-shadow:0 0 2px rgba(28,20,36,.95),0 1px 4px rgba(28,20,36,.6)}
+.lo-peektag{position:absolute;left:50%;bottom:112px;transform:translateX(-50%);display:flex;gap:8px;align-items:center;color:#FFF6E3;font-size:18px;font-weight:700}
 /* Paper */
 .lo-paper{position:absolute;background:#FFF6E3;border:2px solid #6B4A35;border-radius:14px;box-shadow:0 4px 16px rgba(51,39,59,.25);color:#33273B;overflow:hidden}
 .lo-ph{display:flex;align-items:baseline;gap:14px;padding:18px 24px 12px;border-bottom:1px solid #E4D5B7}
