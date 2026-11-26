@@ -48,6 +48,11 @@ const P = {
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
   gear: '<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>',
   sparkle: '<path d="M12 4v5M12 15v5M4 12h5M15 12h5"/>',
+  sun: '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/>',
+  dusk: '<path d="M7 16a5 5 0 0 1 10 0M3 16h18M5 20h14M12 6.5v2.5M6 9.5l1.6 1.6M18 9.5l-1.6 1.6"/>',
+  cloud: '<path d="M7 18h10.5a3.8 3.8 0 0 0 .4-7.6A5.5 5.5 0 0 0 7.4 9.2 4.4 4.4 0 0 0 7 18z"/>',
+  rain: '<path d="M7 14h10.5a3.5 3.5 0 0 0 .4-7A5 5 0 0 0 7.4 6 4 4 0 0 0 7 14zM8 17l-1 3M12 17l-1 3M16 17l-1 3"/>',
+  back: '<path d="M14.5 6 8.5 12l6 6"/>',
   fern: '<path d="M8 21h8l1-5H7zM12 16V7M12 11c-2-1-4-1-5.5-3M12 9c2-1 4-1 5.5-3M12 13c-2-.5-3.5 0-5 1M12 12.5c2-.5 3.5 0 5 1"/>',
   vane: '<path d="M12 21V6M8 21h8M5 9h14M16 7l3 2-3 2M6 7.5 5 9l1 1.5"/><circle cx="12" cy="4.5" r="1.5"/>',
   gull: '<path d="M3 11c3-2 6-2 9 1 3-3 6-3 9-1"/><path d="M9 21h6l-1-5h-4z"/>',
@@ -128,7 +133,8 @@ function hudSailing(opt = {}) {
     cargo(opt.load ?? 23, opt.cap ?? 32, { plus: opt.plus, cls: F('cargo') }),
     compass(opt.heading ?? 35, [{ deg: 200, icon: 'harbour' }, { deg: 62, icon: 'rock' }, ...(opt.ping ? [{ deg: 52, icon: 'whale', amber: true }] : [])],
       { sub: opt.sub, subAmber: opt.subAmber, cls: F('compass') }),
-    showShells ? shells(opt.shells ?? 158, { plus: opt.shellsPlus, cls: F('shells') }) : '',
+    opt.clock === false ? '' : `<div class="lo-glass lo-clock ${F('clock')}">${sky(opt.time || '15:40', opt.weather || 'sun')}</div>`,
+    showShells ? shells(opt.shells ?? 158, { plus: opt.shellsPlus, cls: F('shells'), pos: { right: 32, top: 84 } }) : '',
     opt.log === false ? '' : log(opt.lines || [{ who: 'Pip', text: 'landed a Harbour mackerel', tag: 'new' }], { open: opt.logOpen, tab: opt.tab, input: opt.input }),
     bar(opt.bar || (pad ? SAIL_PAD : SAIL_KB), { cls: F('bar') }),
     opt.speed ? speed(...opt.speed) : '',
@@ -316,42 +322,56 @@ function tabSystem() {
   return `<div class="lo-mcols lo-mcols--sys">${side}${set}</div>`;
 }
 
-/* --- Map (M): painted chart. World x[-800,800], y[-200,1400] (doc 03) */
+/* --- Map (M): cozy hand-drawn chart. World x[-800,800], y[-200,1400] (doc 03) */
 function chart(o = {}) {
-  const S = o.scale || 0.5625, cx = o.cx ?? 960, cy = o.cy ?? 540, my = o.midY ?? 600;
+  const S = 0.62, cx = 980, cy = 560, my = 560;
   const X = (x) => cx + x * S, Y = (y) => cy - (y - my) * S;
-  const wx = (a) => X(a).toFixed(1), wy = (a) => Y(a).toFixed(1);
-  const sea = (y0, y1, fill) => `<rect x="${wx(-800)}" y="${wy(y1)}" width="${(1600 * S).toFixed(1)}" height="${((y1 - y0) * S).toFixed(1)}" fill="${fill}"/>`;
-  const coast = `M ${wx(-800)} ${wy(-20)} L ${wx(-560)} ${wy(-10)} Q ${wx(-470)} ${wy(60)} ${wx(-430)} ${wy(40)} L ${wx(-300)} ${wy(5)} L ${wx(-130)} ${wy(0)} L ${wx(-120)} ${wy(-160)} L ${wx(120)} ${wy(-160)} L ${wx(130)} ${wy(0)} L ${wx(420)} ${wy(10)} Q ${wx(560)} ${wy(40)} ${wx(800)} ${wy(15)} L ${wx(800)} ${wy(-200)} L ${wx(-800)} ${wy(-200)} Z`;
-  const buoys = Array.from({ length: 15 }, (_, i) => `<circle cx="${wx(-700 + i * 100)}" cy="${wy(500)}" r="3.5" fill="#FFF6E3" stroke="#33273B" stroke-width="1.5"/>`).join('');
-  const place = (x, y, i, n, up) => `<g transform="translate(${wx(x)} ${wy(y)})"><circle r="19" fill="#FFF6E3" stroke="#33273B" stroke-width="2"/><g transform="translate(-12 -12)" color="#33273B">${ic(i, 24)}</g><text y="${up ? -28 : 38}" text-anchor="middle" class="lo-chart-l">${n}</text></g>`;
-  const boat = (x, y, deg) => `<g transform="translate(${wx(x)} ${wy(y)}) rotate(${deg})"><path d="M0 -20 L12 14 L0 7 L-12 14 Z" fill="#E8553F" stroke="#33273B" stroke-width="2.5" stroke-linejoin="round"/></g>`;
-  const wake = `<path d="M ${wx(20)} ${wy(150)} Q ${wx(60)} ${wy(200)} ${wx(95)} ${wy(232)}" fill="none" stroke="#FFF6E3" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round"/>`;
-  const ping = `<g transform="translate(${wx(330)} ${wy(350)})"><circle r="26" fill="none" stroke="#FF9B21" stroke-width="3"/><circle r="26" fill="none" stroke="#FF9B21" stroke-width="7" stroke-dasharray="40 200" opacity=".55" transform="rotate(-90)"/><g transform="translate(-12 -12)" color="#C76A00">${ic('whale', 24)}</g></g>`;
-  const pin = `<g transform="translate(${wx(150)} ${wy(1050)})"><path d="M0 0 C -14 -18 -14 -34 0 -34 C 14 -34 14 -18 0 0 Z" fill="#6E6AA8" stroke="#33273B" stroke-width="2"/><circle cy="-23" r="4.5" fill="#FFF6E3"/><text x="16" y="-18" class="lo-chart-l" text-anchor="start">Your pin</text></g>`;
-  return `<svg class="lo-bg" viewBox="0 0 1920 1080" aria-hidden="true">
-  <defs><pattern id="lo-hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="10" height="10" fill="#A9C7CF"/><path d="M0 0 V10" stroke="#7FA2B4" stroke-width="3"/></pattern>
-  <radialGradient id="lo-vig" cx="50%" cy="50%" r="70%"><stop offset=".6" stop-color="#F3E6C8" stop-opacity="0"/><stop offset="1" stop-color="#C9B48A" stop-opacity=".55"/></radialGradient></defs>
-  <rect width="1920" height="1080" fill="#EFE2C4"/>
-  <g stroke="none">${sea(1300, 1400, '#C8D8DC')}${sea(650, 1300, '#9DBDCB')}${sea(500, 650, 'url(#lo-hatch)')}${sea(0, 500, '#A6DAD3')}${sea(-200, 0, '#A6DAD3')}</g>
-  <path d="M ${wx(-800)} ${wy(1300)} H ${wx(800)}" stroke="#33273B" stroke-width="1.5" stroke-dasharray="6 6" opacity=".5"/>
-  <g opacity=".35" stroke="#33273B" stroke-width="1.6" fill="none">${[760, 880, 1000, 1120, 1240].map((y, i) => `<path d="M ${wx(-650 + (i % 2) * 60)} ${wy(y)} q 18 -8 36 0 t 36 0 M ${wx(150 - (i % 2) * 80)} ${wy(y + 30)} q 18 -8 36 0 t 36 0"/>`).join('')}</g>
+  const P = (pts) => pts.map(([x, y], i) => `${i ? 'L' : 'M'} ${X(x).toFixed(1)} ${Y(y).toFixed(1)}`).join(' ') + ' Z';
+  // smooth closed blob through points (Catmull-Rom → cubic)
+  const blob = (pts) => { const n = pts.length; let d = `M ${X(pts[0][0]).toFixed(1)} ${Y(pts[0][1]).toFixed(1)}`;
+    for (let i = 0; i < n; i++) { const p0 = pts[(i - 1 + n) % n], p1 = pts[i], p2 = pts[(i + 1) % n], p3 = pts[(i + 2) % n];
+      const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6], c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+      d += ` C ${X(c1[0]).toFixed(1)} ${Y(c1[1]).toFixed(1)} ${X(c2[0]).toFixed(1)} ${Y(c2[1]).toFixed(1)} ${X(p2[0]).toFixed(1)} ${Y(p2[1]).toFixed(1)}`; }
+    return d + ' Z'; };
+  const main = blob([[-1700, -40], [-1100, -70], [-760, -20], [-560, 30], [-470, 110], [-410, 55], [-300, 15], [-160, 5], [-125, -50], [-60, -150], [60, -150], [125, -50], [160, 5], [330, 20], [470, 45], [560, 25], [760, 40], [1100, -30], [1700, -60], [1700, -900], [-1700, -900]]);
+  const isles = [blob([[580, 160], [620, 215], [675, 195], [670, 150], [620, 140]]), blob([[-330, 1010], [-290, 1050], [-250, 1015], [-275, 975], [-320, 975]]),
+    blob([[520, 1250], [600, 1300], [690, 1270], [660, 1210], [570, 1215]]), blob([[-690, 620], [-650, 660], [-610, 630], [-640, 600]])];
+  const land = (d, k) => `<path d="${d}" fill="#CFEFEA" stroke="#CFEFEA" stroke-width="34" stroke-linejoin="round" opacity=".9" filter="url(#lo-wob)"/><path d="${d}" fill="#E9C994" stroke="#C99E6A" stroke-width="3" stroke-linejoin="round" filter="url(#lo-wob)"/>`;
+  const town = [[-110, -200], [-60, -215], [-5, -205], [50, -218], [105, -198], [-150, -255], [150, -250], [0, -265]].map(([x, y], i) => `<g transform="translate(${X(x).toFixed(1)} ${Y(y).toFixed(1)})"><path d="M-9 4 V-5 L0 -12 L9 -5 V4 Z" fill="${['#F3EEE4', '#FFF6E3', '#EAE3F2'][i % 3]}" stroke="#8E6A4E" stroke-width="1.6" stroke-linejoin="round"/><path d="M-10 -5 L0 -13 L10 -5" fill="none" stroke="${['#D9735F', '#6E8FC0', '#7FB07A'][i % 3]}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g>`).join('');
+  const grass = `<path d="${blob([[-1500, -140], [-700, -110], [-420, -70], [-200, -80], [-170, -170], [170, -170], [200, -80], [440, -50], [760, -80], [1500, -150], [1500, -800], [-1500, -800]])}" fill="#B9DC95" opacity=".9" filter="url(#lo-wob)"/>`;
+  const trees = [[-560, -170], [-520, -140], [-600, -220], [470, -150], [520, -190], [430, -210], [-330, -230], [330, -260]].map(([x, y]) => `<circle cx="${X(x).toFixed(1)}" cy="${Y(y).toFixed(1)}" r="9" fill="#8CC274" stroke="#6E9E5B" stroke-width="1.5"/>`).join('');
+  const waves = (y0, y1, n, col) => Array.from({ length: n }, (_, i) => { const x = -680 + ((i * 397) % 1360), y = y0 + ((i * 173) % (y1 - y0)); return `<path d="M ${X(x).toFixed(1)} ${Y(y).toFixed(1)} q 9 -7 18 0 t 18 0" fill="none" stroke="${col}" stroke-width="2.2" stroke-linecap="round"/>`; }).join('');
+  const badge = (x, y, i, n, col = '#FFF6E3', up) => `<g transform="translate(${X(x).toFixed(1)} ${Y(y).toFixed(1)})"><circle r="21" fill="${col}" stroke="#FFFFFF" stroke-width="3" filter="url(#lo-soft)"/><g transform="translate(-12 -12)" color="#5B4A3E">${ic(i, 24)}</g>${n ? `<text y="${up ? -32 : 40}" text-anchor="middle" class="lo-chart-l">${n}</text>` : ''}</g>`;
+  const boat = (x, y, deg) => `<g transform="translate(${X(x).toFixed(1)} ${Y(y).toFixed(1)})"><circle r="24" fill="#E8553F" stroke="#FFFFFF" stroke-width="3.5" filter="url(#lo-soft)"/><g transform="rotate(${deg})"><path d="M0 -13 L8 9 L0 4 L-8 9 Z" fill="#FFF6E3" stroke="#FFF6E3" stroke-width="1.5" stroke-linejoin="round"/></g></g>`;
+  const ping = `<g transform="translate(${X(330).toFixed(1)} ${Y(350).toFixed(1)})"><circle r="34" fill="#FF9B21" opacity=".18"/><circle r="34" fill="none" stroke="#FF9B21" stroke-width="3" stroke-dasharray="150 64" transform="rotate(-90)"/>${badge(0, my, 'whale', '', '#FFE3BE').replace(/translate\([^)]*\)/, 'translate(0 0)')}</g>`;
+  const pin = `<g transform="translate(${X(150).toFixed(1)} ${Y(1060).toFixed(1)})"><path d="M0 0 C -15 -18 -15 -36 0 -36 C 15 -36 15 -18 0 0 Z" fill="#8E86D6" stroke="#FFFFFF" stroke-width="3" filter="url(#lo-soft)"/><circle cy="-24" r="5" fill="#FFFFFF"/></g>`;
+  const buoys = Array.from({ length: 15 }, (_, i) => `<circle cx="${X(-700 + i * 100).toFixed(1)}" cy="${Y(500).toFixed(1)}" r="4" fill="#FFFFFF" stroke="#D27B5E" stroke-width="2"/>`).join('');
+  return `<svg class="lo-bg" viewBox="0 0 1920 1080" aria-hidden="true"><defs>
+  <filter id="lo-wob" x="-50%" y="-50%" width="200%" height="200%"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="4"/><feDisplacementMap in="SourceGraphic" scale="9"/></filter>
+  <filter id="lo-grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".75" numOctaves="2" seed="9"/><feColorMatrix values="0 0 0 0 .35  0 0 0 0 .3  0 0 0 0 .25  0 0 0 .09 0"/></filter>
+  <filter id="lo-wash" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".006" numOctaves="3" seed="2"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .22 -.05"/></filter>
+  <filter id="lo-soft" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#2F5F86" flood-opacity=".28"/></filter>
+  <linearGradient id="lo-seaG" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#6CC3C6"/><stop offset=".42" stop-color="#5FB4C4"/><stop offset=".5" stop-color="#5A9FC0"/><stop offset="1" stop-color="#4C86AE"/></linearGradient></defs>
+  <rect width="1920" height="1080" fill="url(#lo-seaG)"/><rect width="1920" height="1080" filter="url(#lo-wash)"/>
+  <path d="M 0 ${Y(575).toFixed(1)} ${Array.from({ length: 24 }, (_, i) => `q 40 -14 80 0`).join(' ')}" fill="none" stroke="#FFFFFF" stroke-width="3" opacity=".55" stroke-linecap="round"/>
+  <path d="M 0 ${Y(640).toFixed(1)} ${Array.from({ length: 24 }, (_, i) => `q 40 -14 80 0`).join(' ')}" fill="none" stroke="#FFFFFF" stroke-width="2" opacity=".35" stroke-linecap="round"/>
+  ${waves(700, 1300, 18, 'rgba(255,255,255,.45)')}${waves(60, 480, 10, 'rgba(255,255,255,.35)')}
   ${buoys}
-  <path d="${coast}" fill="#D9C79F" stroke="#33273B" stroke-width="3" stroke-linejoin="round"/>
-  <g transform="translate(${wx(0)} ${wy(-95)})"><rect x="-22" y="-16" width="44" height="32" rx="6" fill="#FFF6E3" stroke="#33273B" stroke-width="2"/><g transform="translate(-12 -12)" color="#33273B">${ic('harbour', 24)}</g></g>
-  <text x="${wx(0) * 1 + 84}" y="${wy(-95) * 1 + 6}" text-anchor="start" class="lo-chart-l">Harbour</text>
-  <text x="${wx(-520)}" y="${wy(320)}" class="lo-chart-r">The Shallows</text>
-  <text x="${wx(-520)}" y="${wy(900)}" class="lo-chart-r lo-chart-r--cool">The Swells</text>
-  <g transform="translate(${wx(-520)} ${wy(860)})" color="#33273B"><g transform="translate(0 -2) scale(.8)">${ic('keel', 24)}</g><text x="26" y="16" class="lo-chart-l" text-anchor="start">Needs a keel</text></g>
-  ${place(-450, 80, 'harbour', 'Gull Point', 1)}${place(250, 300, 'wreck', 'Marigold wreck')}${place(620, 180, 'rock', 'Turtle Rock')}
-  ${ping}${wake}${boat(110, 250, 32)}${pin}
-  <g transform="translate(1700 190)" stroke="#33273B" fill="none" stroke-width="2"><circle r="44" stroke-opacity=".5"/><path d="M0 -58 L8 0 L0 10 L-8 0 Z" fill="#33273B"/><path d="M0 58 L8 0 M0 58 L-8 0"/><text y="-66" text-anchor="middle" class="lo-chart-l" stroke="none" fill="#33273B">N</text></g>
-  <rect width="1920" height="1080" fill="url(#lo-vig)"/></svg>`;
+  ${isles.map((d) => land(d)).join('')}${land(main)}${grass}${trees}${town}
+  <text x="${X(-560).toFixed(1)}" y="${Y(300).toFixed(1)}" class="lo-chart-r">The Shallows</text>
+  <text x="${X(-560).toFixed(1)}" y="${Y(880).toFixed(1)}" class="lo-chart-r">The Swells</text>
+  <g transform="translate(${X(-560).toFixed(1)} ${(Y(880) + 22).toFixed(1)})" color="#FFFFFF"><g transform="scale(.8)">${ic('keel', 24)}</g><text x="26" y="15" class="lo-chart-w">Needs a keel</text></g>
+  ${badge(-450, 80, 'harbour', 'Gull Point', '#FFF6E3', 1)}${badge(250, 300, 'wreck', 'Marigold wreck')}${badge(625, 180, 'rock', 'Turtle Rock')}${badge(0, -95, 'anchor', 'Harbour', '#FFF6E3')}
+  ${ping}${boat(100, 235, 32)}${pin}
+  <rect width="1920" height="1080" filter="url(#lo-grain)"/></svg>`;
 }
+function sky(time, w) { const icn = { sun: 'sun', dusk: 'dusk', cloud: 'cloud', rain: 'rain' }[w]; return `${time} ${ic(icn, 26)}`; }
 function mapFull() {
-  const title = `<div class="lo-map-title">The Little Ocean <small>Chart</small></div>`;
-  const tip = `<div class="lo-map-tip">${ic('whale', 18)} Whale pod · seen 3 min ago</div>`;
-  return world(null, chart() + title + tip + bar([['Click', 'Pin'], ['R', 'Clear pin'], ['F', 'Centre'], ['Wheel', 'Zoom'], ['M', 'Close']], { cls: 'lo-focus' }), {});
+  const top = `<div class="lo-map-back">${ic('back', 26)}</div><div class="lo-map-title">The Little Ocean</div>
+  <div class="lo-map-sub">${ic('journal', 18)} Places 3 / 5 &nbsp; ${ic('fish', 18)} Fish 7 / 11</div>
+  <div class="lo-map-clock">${sky('15:40', 'sun')}</div>
+  <div class="lo-map-zoom"><span>+</span><i><b></b></i><span>−</span></div>`;
+  return world(null, chart() + top + bar([['Click', 'Pin'], ['R', 'Clear pin'], ['F', 'Centre'], ['M', 'Close']], { cls: 'lo-focus' }), {});
 }
 
 /* --- Companion 512x320 */
@@ -396,7 +416,7 @@ function section() {
   const s1 = screen('hud', 1, 'Sailing HUD (The Shallows)', 'Attention follows relevance (<code>/clean-ui</code>). At rest everything is Ambient: no plates and no outlines, so the text sits in the scene rather than on top of it, and Shells are hidden. Keycaps stay solid. An element gains its plate and grows only while it matters, then settles back by itself.',
     fig(world('ui_bg_day', hudSailing({ sub: 'The Shallows', lines: [{ who: 'Mabel', text: 'landed a Sand sprat', fade: 0.5 }, { who: 'Pip', text: 'landed a Harbour mackerel', tag: 'new' }] })),
       '<b>A. Resting state.</b> Cargo, compass and key prompts are Ambient (plain cream text, solid keycaps); Shells are hidden at sea; two log lines drift up and fade. The region name shows for 6 s on entry. Nothing on screen has a backing block.') +
-    `<div class="lo-row2">${fig(world('ui_bg_dusk', hudSailing({ load: 32, cap: 32, heading: 210, bar: SAIL_PAD, pad: true, focus: ['cargo'],
+    `<div class="lo-row2">${fig(world('ui_bg_dusk', hudSailing({ load: 32, cap: 32, heading: 210, bar: SAIL_PAD, pad: true, focus: ['cargo'], time: '18:40', weather: 'dusk',
       lines: [{ text: "Hold full. The crew's resting." }], speed: [6, 4], hint: 'Head home to sell' })), '<b>B. Hold full (decision moment).</b> Cargo is Focused for 6 s (plate, 1.2×), then returns to Ambient. Dusk + gamepad (Y = anchor).')}
     ${fig(world('ui_bg_day', hudSailing({ heading: 40, ping: true, sub: '<b>Whale pod</b> · NE · 240 m', subAmber: true, lines: [{ who: 'Ana', text: 'whales by the lighthouse!', chat: 1 }, { who: 'Kai', text: 'on my way', chat: 1 }], logOpen: true, tab: 'Chat', input: 'omw, see you there', speed: [0, 0, { anchored: true }] })),
       '<b>C. Enter pressed: chat opens.</b> The box, history and input appear only now (Focused). Esc or send returns to bare fading lines. The ping marker is the one amber thing on the compass.')}</div>` +
@@ -407,7 +427,7 @@ function section() {
     SPEC([['States', 'Hidden · Ambient (no plate, no outline or shadow: cream glyphs at 92%, printed into the scene) · Focused (Ink Glass 70% plate, 1.2×, 150 ms ease) · Interruptive: none in normal play'],
       ['Cargo', 'Ambient top-left · Focused 6 s when the hold fills, and in the Fishmonger'], ['Shells', 'Hidden at sea · "+N" lift on change · Focused (plate, 1.2×) in Fishmonger, Shipyard, Inn · peek'],
       ['Compass', 'Ambient ticks + letters, no strip · ping marker amber · region pill 6 s on entry'], ['Prompts', 'Ambient strip, keycaps always solid cream · Focused inside screens (screen prompts) · Settings: Full / Context / Off'],
-      ['Log + chat', 'Ambient lines fade 12 s, no box · hover/L = history (Focused) · Enter = chat box + input (Focused) · Esc closes'], ['Inspect', 'hold F / LB: all Focused while held'], ['Speed', 'Ambient, only while the throttle changes (+3 s) or anchored']]));
+      ['Log + chat', 'Ambient lines fade 12 s, no box · hover/L = history (Focused) · Enter = chat box + input (Focused) · Esc closes'], ['Inspect', 'hold F / LB: all Focused while held'], ['Speed', 'Ambient, only while the throttle changes (+3 s) or anchored'], ['Time + weather', 'top-right, Ambient: in-game time + one icon (sun, dusk, cloud, rain) · Focused on Inspect · Hidden inside screens (Shells take the corner)']]));
 
   const s2 = screen('fish', 2, 'Fishmonger: sell', 'Selling only. One button sells the whole hold at fixed prices. Close with Esc. There is no ✕ button.',
     fig(fishmonger('rows'), '<b>A.</b> Docked, E pressed: the catch table and Sell all. The bar shows the screen\'s own prompts.') +
@@ -444,7 +464,7 @@ function section() {
       ['Input', 'drag / RS pan · wheel / triggers zoom (whole sea, region) · F / RS click centre · Click / A pin · R clear · M / Esc close'], ['Scale', '1600 m → 900 px at whole-sea (0.56 px/m); region zoom 1.5× · positions from doc 03']]));
 
   const s8 = screen('swell', 8, 'Swell gate (no keel yet)', 'Show "not yet", never "game over". One hint, one log line, and the reason points at the Shipyard.',
-    fig(world('ui_bg_day', hudSailing({ heading: 2, lines: [{ who: 'Mabel', text: "says the swell's too big for the Skiff" }], hint: "The swell's too big for the Skiff. A keel would help.", speed: [2, 2] }), { imgStyle: 'filter:saturate(.9) brightness(.96)' }),
+    fig(world('ui_bg_day', hudSailing({ heading: 2, weather: 'cloud', time: '11:20', lines: [{ who: 'Mabel', text: "says the swell's too big for the Skiff" }], hint: "The swell's too big for the Skiff. A keel would help.", speed: [2, 2] }), { imgStyle: 'filter:saturate(.9) brightness(.96)' }),
       '<b>A.</b> Pushed back at the R2 edge: one hint per sail-out and one log line (the bark as a caption). The compass still shows the way home.'));
 
   const s9 = screen('compact', 9, 'Companion window (512×320, actual size)', 'The desk-corner view. The control bar shrank from 64 to 40 DIP, so the sea gets 280 of the 320 px.',
@@ -559,7 +579,8 @@ const STYLE = `
 .lo-amb .lo-bar:not(.lo-focus) .lo-pad--n{border-color:#FFF6E3}
 .lo-focus{transform:scale(1.2)}
 .lo-amb .lo-cmp.lo-focus .lo-cmp-strip{background:rgba(51,39,59,.70);text-shadow:none;opacity:1}
-.lo-cargo.lo-focus{transform-origin:0 0}.lo-shells.lo-focus{transform-origin:100% 0}.lo-bar.lo-focus{transform-origin:0 100%}.lo-cmp.lo-focus{transform:none}
+.lo-cargo.lo-focus{transform-origin:0 0}.lo-shells.lo-focus{transform-origin:100% 0}.lo-clock.lo-focus{transform-origin:100% 0}
+.lo-clock{right:32px;top:32px;height:40px;display:flex;align-items:center;gap:8px;padding:0 12px 0 14px;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}.lo-bar.lo-focus{transform-origin:0 100%}.lo-cmp.lo-focus{transform:none}
 .lo-peektag{position:absolute;left:50%;bottom:112px;transform:translateX(-50%);display:flex;gap:8px;align-items:center;color:#FFF6E3;font-size:18px;font-weight:700}
 /* Paper */
 .lo-paper{position:absolute;background:#FFF6E3;border:2px solid #6B4A35;border-radius:14px;box-shadow:0 4px 16px rgba(51,39,59,.25);color:#33273B;overflow:hidden}
@@ -628,10 +649,15 @@ const STYLE = `
 .lo-jg--4{grid-template-columns:repeat(4,1fr);padding:0}
 .lo-mbody .lo-crow{padding:12px 4px}
 .lo-mbody .lo-menu{padding:0}
-.lo-chart-l{font:700 17px "Nunito",sans-serif;fill:#33273B}
-.lo-chart-r{font:600 italic 34px "Fredoka","Nunito",sans-serif;fill:#2E6F6A;letter-spacing:.04em}.lo-chart-r--cool{fill:#3E5F7E}
-.lo-map-title{position:absolute;left:48px;top:40px;font-family:"Fredoka",sans-serif;font-weight:600;font-size:34px;color:#33273B}.lo-map-title small{font-size:18px;color:#6A5D70;margin-left:8px}
-.lo-map-tip{position:absolute;left:1186px;top:632px;display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:8px;background:rgba(51,39,59,.85);color:#FFF6E3;font-size:16px;font-weight:700}
+.lo-chart-l{font:800 17px "Nunito",sans-serif;fill:#5B4A3E;paint-order:stroke;stroke:#FFF6E3;stroke-width:4px;stroke-linejoin:round}
+.lo-chart-w{font:800 17px "Nunito",sans-serif;fill:#FFFFFF;opacity:.9}
+.lo-chart-r{font:600 34px "Fredoka","Nunito",sans-serif;fill:#FFFFFF;opacity:.85;letter-spacing:.06em}
+.lo-map-back{position:absolute;left:40px;top:36px;width:56px;height:44px;border-radius:22px;background:rgba(255,246,227,.85);color:#5B4A3E;display:flex;align-items:center;justify-content:center}
+.lo-map-title{position:absolute;left:112px;top:34px;font-family:"Fredoka",sans-serif;font-weight:600;font-size:30px;color:#FFFFFF}
+.lo-map-sub{position:absolute;left:112px;top:78px;display:flex;align-items:center;gap:6px;color:#FFFFFF;font-size:17px;font-weight:700;opacity:.92;padding-top:4px;border-top:2px dashed rgba(255,255,255,.6)}
+.lo-map-clock{position:absolute;right:44px;top:36px;display:flex;align-items:center;gap:10px;color:#FFFFFF;font-family:"Fredoka",sans-serif;font-weight:600;font-size:30px}.lo-map-clock svg{color:#FFD45A}
+.lo-map-zoom{position:absolute;left:52px;top:330px;display:flex;flex-direction:column;align-items:center;gap:8px;color:#FFFFFF;font-size:26px;font-weight:700}
+.lo-map-zoom i{position:relative;width:12px;height:240px;border-radius:6px;background:rgba(255,246,227,.55)}.lo-map-zoom b{position:absolute;left:50%;top:60%;width:30px;height:30px;margin:-15px;border-radius:50%;background:#FFFFFF;box-shadow:0 2px 4px rgba(47,95,134,.35)}
 /* Decor points */
 .lo-dp{border-radius:50%;border:2.5px solid rgba(255,246,227,.9);background:rgba(51,39,59,.18);box-shadow:0 0 0 1px rgba(51,39,59,.35)}
 .lo-dp--full::after{content:"";position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px;border-radius:50%;background:#FFF6E3}

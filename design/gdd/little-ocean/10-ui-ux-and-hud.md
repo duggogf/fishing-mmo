@@ -67,6 +67,7 @@ H = Hidden · A = Ambient · F = Focused. Each non-default cell names its trigge
 | Ping marker | **F** amber marker + subtitle 6 s → A marker | | | queued | | |
 | Region name | **H**; F 6 s on crossing 50% of `TransitionBand` | | | | | F |
 | Speed | **H**; A while the throttle changes (+3 s); A "Anchored" while anchored | | | | | F |
+| Time + weather | **A** top-right (in-game time + one icon) | A | A | H (Shells take the corner) | A | F |
 | Action prompts | **A** outlined keycaps | A | **F** `E` Talk chip · enter trigger → leave | **F** screen prompts | F (Enter send · Esc close) | — |
 | Activity log | **A** lines fade 12 s; nothing when idle | A line "Hold full" | A | H (queued) | **F** box + history + input · Enter → Esc/send | A |
 | Log history | H | H | H | H | F | — (hover / `L` / D-pad up opens it: F) |
@@ -93,6 +94,11 @@ Budget: at rest, Focused = 0; per screen region ≤ 1 Focused element; Interrupt
   sale; Focused in the Fishmonger, Shipyard and Inn screens; shown by Inspect.
 - **Compass** (top-centre, 420 wide): ticks and cardinal letters 15 px, 18 px markers (harbour always, discoveries
   once seen, Beacon Amber ping). No strip at rest. **Region name** (18 px/700) shows for 6 s on entry, then hides.
+- **Time + weather** (top-right, owner pass 2026-11-26, after Heartopia's map corner): in-game time `15:40` (20 px/700,
+  tabular) + one 26 px weather icon: sun (Day, clear), low sun (Dusk), cloud (The Swells, clear), rain (Drizzle). Ambient
+  at sea; Focused on Inspect; hidden inside harbour screens and the Menu, where Shells use the corner. It matters for
+  play: the Bell Buoy only lights in drizzle (03), and dusk is when lamps and the lighthouse beam come on (09/11).
+  Source: game clock (PROPOSED below, Open Q 5) and `Weather` (03).
 - **Speed readout** (bottom-right, doc 02): `6 kn` + 5-notch throttle ladder, Ambient, only while the throttle
   changes and 3 s after; "Anchored" stays while `Anchored`.
 - **Action prompts** (bottom-left): one row of key/button glyph + verb (18 px/700, gap 20 px). Keycaps 24 px, always
@@ -223,9 +229,19 @@ Size: Paper 1280×760 centred (tab row 56 px; content 1232×660). Shells are Foc
 is Focused while it is open.
 
 ### Map (`M`) — the big chart (no minimap)
-A full-screen painted sea chart, drawn like a captain's paper chart in the cel style: cream paper, ink coastline,
-watercolour sea in two tones (Shallows warm, Swells cool), a hatched band for the `TransitionBand`, and the swell-buoy
-line. It answers three questions: *where am I, where is home, where haven't I been?*
+A full-screen, **cozy hand-drawn chart** (owner reference: Heartopia's map). The style:
+- **Sea**: watercolour wash, lighter teal in The Shallows deepening to blue in The Swells, with a soft paper grain over
+  everything. Little white wave doodles; the `TransitionBand` is two hand-drawn wave lines; swell buoys are small
+  white dots with a coral rim.
+- **Land**: sand-coloured shapes with wobbly hand-drawn edges, a thin darker sand outline and a pale shallow-water halo
+  around every coast. Grass and tiny round trees inland, and the harbour town as little house doodles.
+- **Markers**: round white-rimmed badges with a soft shadow (place icons, harbour anchor); the boat is a coral disc
+  with a cream heading arrow; the pin is a soft lilac drop. Labels are small, bold, with a cream halo; region names
+  are large, spaced, white and semi-transparent, printed on the water.
+- **Chrome** (minimal, white on the sea): a round back button and the title top-left with a dashed underline and
+  "Places 3 / 5 · Fish 7 / 11"; time + weather top-right; a vertical zoom slider on the left; the prompt bar
+  bottom-left (Focused).
+It answers three questions: *where am I, where is home, where haven't I been?*
 
 - **Shows**: your boat (ink arrow with heading, 32 px), the harbour (always), region names (`The Shallows`,
   `The Swells`), discoveries you have seen (their journal icons, 28 px, name on hover), an active whale-pod ping
@@ -427,6 +443,12 @@ crew+journal 2 d, onboarding hints 1 d, input/remap 2 d, accessibility pass 2 d,
 4. ~~HUD auto-fade~~ CLOSED: replaced by attention states (Ambient at rest, Focused on trigger, Inspect). Validate by H1
    observer notes: do players find Shells when they want them (Inspect / screens)?
 
+5. **Game clock (PROPOSED, needs an owner in 03 or 09)**: the HUD shows in-game time, but no doc defines a clock yet
+   (09 has `LightPhase` Day/Dusk only; 03 has the R2 drizzle cycle). Proposal: one in-game day = 30 real minutes,
+   06:00–18:00 Day (22.5 min), 18:00–21:00 Dusk (5.6 min), 21:00–06:00 skipped with a 2-min soft dusk-to-dawn
+   blend (no night in the prototype). The clock is local per player in solo and room-shared in multiplayer (06).
+   Owner to confirm the day length and whether night exists.
+
 ## Interface values
 | Value | Number / name | Consumer |
 |---|---|---|
@@ -442,6 +464,7 @@ crew+journal 2 d, onboarding hints 1 d, input/remap 2 d, accessibility pass 2 d,
 | Log events | species first per trip, new species, Uncommon+, hold half/full, region, discovery, sale, hull bought, crew hired, cosmetic earned, ping, crew left zone | 04, 03, 05, 06, 11 |
 | Region label | on crossing 50% of `TransitionBand`, 6 s | 03 |
 | Speed readout | kn + 5 notches on change, 3 s; anchor icon while `Anchored` | 02 |
+| Time + weather | top-right `HH:MM` + icon (sun / dusk / cloud / rain); Ambient; hidden in screens | 03, 09 |
 | Ping distance | rounded to 10 m, hidden <20 m (MP mock; solo whale ping built) | 06, 03 |
 | Crew icon | 36×48 px dummy in crew panel, colour triplet from 09, `CrewId` name | 04, 09 |
 | Companion toggle | F9 / hold View 0.6 s | 08 |

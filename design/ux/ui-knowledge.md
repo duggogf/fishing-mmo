@@ -112,6 +112,14 @@
 - Also implied and done: a Ship tab (read-only loadout), a Cargo tab (what is in the hold, with no prices at sea),
   Esc at sea opens Menu → System, the map pin shows on the compass, and chat leaves the bar (it is MP-only).
 
+**FB-12 — "Show time and weather (like Heartopia's map corner); make the map cozy and hand-drawn" (2026-11-26)**
+- Done: top-right `15:40 ☀` on the HUD (Ambient) and on the map; icons sun / dusk / cloud / rain. The map is restyled
+  as a hand-drawn chart: watercolour sea with paper grain, wobbly sand coasts with shallow-water halos, doodled waves,
+  houses and trees, round white-rimmed badges, white printed region names, minimal white chrome.
+- Reflection: a map is the one screen allowed to be decorative, because looking at it *is* the activity. The cozy
+  style comes from soft edges, halos, doodles and restraint (few colours, no hard frames), not from more UI.
+- Gap found: no doc owned a game clock. A proposal was added (doc 10 Open Q 5) for the owner to confirm.
+
 ## 3. "Looks AI-made" — anti-patterns to avoid
 
 1. Every element in its own rounded card with an icon, a title and a subtitle.
