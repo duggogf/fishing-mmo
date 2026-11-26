@@ -85,7 +85,7 @@
   Run `/clean-ui` before any UI design or review.
 - Supersedes P-10's "Ink Glass over the world" for resting HUD: plates are now a *focus signal*, not a legibility
   crutch. Applied to Little Ocean (doc 10 relevance matrix + mocks): resting HUD has no plates, Shells hidden at sea,
-  cargo Focused 6 s when full, chat box only on Enter, peek on Tab/LB, "Always backed" HUD style for players who
+  cargo Focused 6 s when full, chat box only on Enter, Inspect on hold F/LB (was peek on Tab), "Always backed" HUD style for players who
   prefer plates.
 
 **FB-9 — "Cosmetics need more than colour: placeable objects on per-frame slots, without bloat" (2026-11-26)**
@@ -102,6 +102,15 @@
   look for them, so they stay solid.
 - Risk logged (doc 10 F3): plain cream vanishes over white wake or foam. Fix order: placement, then luma-adaptive tint,
   then an "Outlined" HUD style option. Folded into `/clean-ui` (Ambient row, rule 6, principles §4).
+
+**FB-11 — "Add the big map; trim the bar to Sail, Anchor, Map, Inspect (hold F), Menu (Tab) with tabs" (2026-11-26)**
+- Done: Map (M) = full-screen painted chart (boat, harbour, regions, seen places, ping, one pin; no undiscovered
+  markers, no minimap). Menu (Tab) = one screen with tabs Cargo · Ship · Crew · Journal · Map · System; harbour
+  jobs never appear in it. Peek renamed **Inspect**, on hold F / LB.
+- Reflection: the bar should teach *verbs of the moment* plus two doors (Map, Menu), not list every screen.
+  One menu with tabs is a single door to remember; direct shortcuts (C, J) still exist for players who learn them.
+- Also implied and done: a Ship tab (read-only loadout), a Cargo tab (what is in the hold, with no prices at sea),
+  Esc at sea opens Menu → System, the map pin shows on the compass, and chat leaves the bar (it is MP-only).
 
 ## 3. "Looks AI-made" — anti-patterns to avoid
 

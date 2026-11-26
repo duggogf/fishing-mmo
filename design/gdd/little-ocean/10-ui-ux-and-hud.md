@@ -33,7 +33,7 @@ note handed across a counter, never a dashboard.
    console/TV (10-foot) values the first draft used. Type scale, sizes and scale formula: §Formulas, §Interface values.
 2. **Attention follows relevance (owner UX pass, `/clean-ui`)**: every HUD element is in one state at a time, chosen
    by what the player is doing. Plates are a *focus signal*, not a legibility crutch.
-   - **Hidden**: not drawn (reachable by peek or its own screen).
+   - **Hidden**: not drawn (reachable by Inspect or its own screen).
    - **Ambient** (default at sea): no plate, no outline, no shadow. Cream `#FFF6E3` glyphs at 92% so the HUD reads as
      printed into the scene, not floating above it (owner pass). Keyboard keycaps are always **solid** cream chips with
      ink letters, so the controls read at a glance. No motion while values are static. Legibility risk: §Formulas F3.
@@ -51,14 +51,14 @@ note handed across a counter, never a dashboard.
 5. **Depth rule**: any harbour action ≤2 clicks from walking up to the counter (CONFIRMED §5 A5); the one exception
    is doc 05's single confirm step for purchases ≥ 100 Shells (D8).
 6. **No nagging (CONFIRMED §5 A5)**: no repeating prompts, no "you could be earning" text, no badge counters.
-7. **Peek**: hold `Tab` / `LB` and every element is Focused (including Shells) for as long as it is held. `H` hides
+7. **Inspect**: hold `F` / `LB` and every HUD element is Focused (including Shells) for as long as it is held. `H` hides
    all. Settings → Accessibility → HUD style: **Ambient** (default), **Outlined** (ink outline on glyphs) or **Always backed**
    (plates on every element).
 
 ### HUD relevance matrix (sailing contexts; `/clean-ui` method)
 H = Hidden · A = Ambient · F = Focused. Each non-default cell names its trigger → exit.
 
-| Element | Sailing (rest) | Hold just filled | Docked at a counter | In a harbour screen | Chat open | Peek held |
+| Element | Sailing (rest) | Hold just filled | Docked at a counter | In a harbour screen | Chat open | Inspect held |
 |---|---|---|---|---|---|---|
 | Cargo | **A** ("go home yet?") | **F** 6 s · hold hits 100% → 6 s | A | **F** in Fishmonger only; H elsewhere | A | F |
 | Shells | **H** (no decision at sea) | H | A | **F** · screen opens → closes | H | F |
@@ -83,21 +83,23 @@ Budget: at rest, Focused = 0; per screen region ≤ 1 Focused element; Interrupt
 |                                      The Shallows   <- on region entry only (6 s)                |
 |                                     (open sea, ≥98% of the frame, no plates)                     |
 | Pip landed a Mackerel · new          <- log lines, Ambient, fade 12 s           6 kn ▮▮▮▯▯ (A, 3 s)|
-| W A S D Sail  Space Anchor  C Crew  J Journal  Enter Chat  Esc Menu   <- outlined prompts (A)      |
+| W A S D Sail   Space Anchor   M Map   F Inspect (hold)   Tab Menu    <- prompts (A), keycaps solid |
 +--------------------------------------------------------------------------------------------------+
 ```
 - **Cargo** (top-left, `CargoLoad`/`CargoCapacity`, doc 04): fish icon 24 px + bar 120×8 + count `23/32` (18 px,
   tabular). At full: box-lid icon replaces the fish, bar stripes, count becomes "Full" (icon + word, never colour
   alone) and the element is Focused for 6 s. A landed fish shows a `+1` that rises 12 px and fades over 0.8 s.
 - **Shells** (top-right when shown, doc 05): shell icon 24 px + integer 20 px/700. Hidden at sea; `+N` lift on a
-  sale; Focused in the Fishmonger, Shipyard and Inn screens; shown by peek.
+  sale; Focused in the Fishmonger, Shipyard and Inn screens; shown by Inspect.
 - **Compass** (top-centre, 420 wide): ticks and cardinal letters 15 px, 18 px markers (harbour always, discoveries
   once seen, Beacon Amber ping). No strip at rest. **Region name** (18 px/700) shows for 6 s on entry, then hides.
 - **Speed readout** (bottom-right, doc 02): `6 kn` + 5-notch throttle ladder, Ambient, only while the throttle
   changes and 3 s after; "Anchored" stays while `Anchored`.
 - **Action prompts** (bottom-left): one row of key/button glyph + verb (18 px/700, gap 20 px). Keycaps 24 px, always
   solid cream with ink letters; gamepad discs keep their letter inside (A green, B red, X blue, Y yellow) so they read without colour.
-  - Sailing: `WASD` Sail · `Space` Anchor · `C` Crew · `J` Journal · `Enter` Chat · `Esc` Menu (Ambient).
+  - Sailing: `WASD` Sail · `Space` Anchor · `M` Map · hold `F` Inspect · `Tab` Menu (Ambient). Gamepad: `LS` Sail ·
+    `Y` Anchor · `View` Map · hold `LB` Inspect · `Menu` Menu. Chat (`Enter`) is not on the bar: it is multiplayer-only
+    (paper, D3) and a log line teaches it the first time someone speaks.
   - Docked at a counter: `E` Talk appears first as a Focused cream chip until used.
   - Inside a screen: the bar shows that screen's prompts and is Focused (plate).
   - Every item is also a mouse button (hover = Focused). Settings → Action bar: Full · Context only · Off.
@@ -201,20 +203,43 @@ The one screen that takes over the frame, because the boat itself is the interfa
 - One-off hire fee, no wages (00 §3). Candidates: Tomo only in prototype (D5). Crew waiting ashore (berth removed)
   are listed here as "Waiting at the Inn" and re-board automatically when a berth is free.
 
-#### Crew panel (`C`, at sea, paper 520×330)
-Read-only roster: per crew a 36×48 dummy + slot number + name 20 px + state glyph and word 18 px (rod "Fishing",
-cup "Resting", dots "Not in a fishing spot") + efficiency as words (04 mapping), never a number (P3). Flavour lines
-describe poses, never faces (D7). This and the crew board are the only crew UI (no HUD list).
+### Menu (`Tab`) — everything that is not a harbour job (owner pass, 2026-11-26)
+One Paper screen with a tab row, over the dimmed world (solo: the world keeps running; the boat holds its throttle,
+so the menu is safe to open anywhere). `Q`/`E` or `LB`/`RB` switch tabs; `Tab`, `Esc` or `B` close. Shortcuts that
+open a tab directly (not shown in the action bar): `C` Crew, `J` Journal, `M` Map, `Esc` at sea → System.
+Harbour jobs (sell, fit, paint, decorate, hire) are **never** in this menu; they belong to their places.
 
-#### Discovery journal (`J`, paper 720×400)
-Tabs Fish · Places; "seen" list only (00 §3 OUT); undiscovered = flat silhouettes; counts shown as "7 of 11 seen".
-Earned cosmetics show a small stamp on the entry that unlocked them (11).
+| Tab | Shows | Read-only? |
+|---|---|---|
+| **Cargo** | Fish in the hold by species (cel icon, name, count), `CargoLoad / CargoCapacity`, "Hold full" state. No prices or totals at sea (P3: no optimising; the Fishmonger shows value). | yes |
+| **Ship** | The boat as she is: hull, fitted items per slot, load bar, decor summary, boat name. A line "Change her at the Shipyard" — no editing here. | yes |
+| **Crew** | Per crew: 36×48 dummy + slot number + name 20 px + state glyph and word 18 px (rod "Fishing", cup "Resting", dots "Not in a fishing spot") + efficiency as words (04), flavour line (poses, never faces, D7). Crew waiting at the Inn listed as such. | yes |
+| **Journal** | Fish · Places sub-tabs; "seen" list only (00 §3 OUT); undiscovered = flat silhouettes; "7 of 11 seen"; earned-cosmetic stamps (11). Selecting a place shows it on the Map tab. | yes |
+| **Map** | Same chart as the full-screen map (below), inside the menu frame. | pin only |
+| **System** | Resume · Settings · Companion window (F9) · Controls · Quit to desktop. Settings tabs: Display (UI scale 80–150%, Action bar Full/Context/Off), Audio, Controls (rebind, glyph style), Accessibility (text scale, reduce motion/flashes, hints off, HUD style Ambient / Outlined / Always backed). Changes preview live. | — |
 
-#### Pause menu and settings (`Esc` at sea; previously missing)
-Paper 360×420 column at the left, settings panel 720×500 beside it, over the dimmed world (the game keeps running behind it in solo; nothing
-is lost by pausing). Items: Resume · Settings · Companion window (F9) · Controls · Quit to desktop. Settings tabs:
-Display (UI scale 80–150%, HUD fade, Action bar Full/Context/Off), Audio, Controls (rebind, glyph style),
-Accessibility (text scale, reduce motion/flashes, hints off, HUD style Ambient / Outlined / Always backed). Each change previews live.
+Size: Paper 1280×760 centred (tab row 56 px; content 1232×660). Shells are Focused in the menu's top-right corner
+(the menu is a "looking at my things" context). Clean-ui: the menu is one Focused screen; nothing else on screen
+is Focused while it is open.
+
+### Map (`M`) — the big chart (no minimap)
+A full-screen painted sea chart, drawn like a captain's paper chart in the cel style: cream paper, ink coastline,
+watercolour sea in two tones (Shallows warm, Swells cool), a hatched band for the `TransitionBand`, and the swell-buoy
+line. It answers three questions: *where am I, where is home, where haven't I been?*
+
+- **Shows**: your boat (ink arrow with heading, 32 px), the harbour (always), region names (`The Shallows`,
+  `The Swells`), discoveries you have seen (their journal icons, 28 px, name on hover), an active whale-pod ping
+  (Beacon Amber ring with its remaining time as a thinning ring, no number), and your pin.
+- **Never shows**: undiscovered places (no "?" markers, no completion %), fish locations, other players (solo; MP
+  paper only, D3), anything to optimise.
+- **Swells before the keel**: the region is drawn and named, with a small keel glyph and "Needs a keel" on hover.
+- **Pin**: one player pin (click / A). It appears on the compass as a cream marker; place again to move, R to
+  clear. Sailing within 30 m clears it.
+- **Navigation**: drag or right stick to pan, wheel or triggers to zoom (2 levels: whole sea, region), F / RS click
+  to recentre on the boat. Opens centred on the boat.
+- **Prompts** (Focused bar): `Click` Pin · `R` Clear pin · `F` Centre · `Wheel` Zoom · `M` Close. Esc also closes.
+- Map bounds and positions come from 03 (1.6 × 1.6 km; harbour at the south edge). Chart scale at "whole sea":
+  1600 m → 900 px (0.56 px/m); at "region": 1.5×.
 
 ### Encounter ping and chat — MOCK-UP ONLY except the solo whale ping (CONFIRMED owner D3)
 - **Ping**: Beacon Amber whale glyph on the compass + subtitle under the compass "Whale pod · NE · 240 m" (18 px,
@@ -280,8 +305,12 @@ costs, hire fee), 03 (`RegionId`, discoveries, `TransitionBand`), 02 (`BoatSpeed
 - Log line arrives while a screen is open: it queues and shows (≤3 lines, merged) when the screen closes.
 - Log box open (hovered) when lines expire: they stay listed in the open box; the 12 s fade only applies when closed.
 - Solo whale ping while a harbour screen is open: marker queues until the screen closes, if not yet expired.
-- Action bar wider than the space left of the speed readout (UIScale 1.5 at 1080p ≈ 915 px): bar drops `Esc` Menu
-  and `Enter` Chat first (both still work), never wraps to two rows.
+- Action bar at UIScale 1.5 (≈ 720 px wide for 5 items) still fits left of the speed readout; at higher scales it
+  drops `Inspect` first (still works), never wraps to two rows.
+- Map opened with no discoveries yet: harbour, regions and the boat only; no empty-state text needed.
+- Pin placed inside The Swells without a keel: allowed (it is a goal), and the compass shows it.
+- Menu or map opened while drifting toward the swell band: allowed; the push-back (02) continues and the hint
+  queues until the screen closes.
 - Gamepad disconnected mid-screen: glyphs switch to KB/M on next input; no pause.
 - Ultrawide 21:9: HUD anchors to the 16:9 safe centre ±10% (PROPOSED); 4:3 not supported.
 - Opening journal during swell push-back: allowed; the boat is already throttled by doc 02.
@@ -323,13 +352,15 @@ just not touching anything for 8 s (fade) or pressing `H`.
 | Anchor | Space | Y (owner, 2026-11-26) |
 | Camera orbit / zoom | RMB drag / wheel | Right stick / RS click cycle |
 | Interact (counter) / confirm | E | A |
-| Crew / Journal | C / J | View → tabs |
+| Menu (Cargo · Ship · Crew · Journal · Map · System) | Tab (tabs: Q / E) | Menu (tabs: LB / RB) |
+| Map (full screen) | M | View |
+| Crew / Journal tab shortcut | C / J | — |
 | Activity log open | L or hover | D-pad up |
 | Chat (mock) | Enter | — (POST-PROTOTYPE on-screen keyboard) |
 | Companion mode | F9 | Hold View 0.6 s |
-| Peek (all HUD Focused while held) | hold Tab | hold LB |
+| Inspect (all HUD Focused while held) | hold F | hold LB |
 | Hide HUD | H | D-pad down |
-| Menu / back | Esc | Menu / B (in screens) |
+| Back / close; at sea opens Menu → System | Esc | B |
 All remappable (Enhanced Input user mappings); the action bar always shows the current binding. No fishing action
 exists on any device (P2).
 
@@ -374,7 +405,7 @@ crew+journal 2 d, onboarding hints 1 d, input/remap 2 d, accessibility pass 2 d,
    everywhere, checked on a white-sky and a dark-dusk screenshot.
 5. Resting Sailing screenshot: no plates on screen, Shells not visible, footprint ≤3% by glyph bounds (F4).
 5b. Each Focused state in the relevance matrix appears on its trigger and returns to its resting state on its exit,
-   with no manual dismissal (cargo full 6 s, Shells in screens, chat on Enter/Esc, peek on hold/release) — capture check.
+   with no manual dismissal (cargo full 6 s, Shells in screens, chat on Enter/Esc, Inspect on hold/release) — capture check.
 6. No crew information on the Sailing HUD; in a 5-min sailing screenshot sequence the only HUD elements are cargo,
    Shells, compass, action bar and (transiently) log lines, speed readout, hint pill.
 7. Every action bar item triggers its action when clicked, and its glyph updates within 1 frame of switching
@@ -385,24 +416,28 @@ crew+journal 2 d, onboarding hints 1 d, input/remap 2 d, accessibility pass 2 d,
 10. Each crew entry in the crew panel can be identified in a greyscale screenshot by name and slot number alone (D7).
 11. (H1/H3) Solo whale ping shows compass marker, subtitle, ripple and one log line with no sender; first fire 10–15 min in.
 12. (H3, paper) Chat/ping cards let ≥50% of paper-test players state ping direction and distance within 60 s.
+13. Tab opens the Menu from anywhere at sea; every non-harbour screen (cargo, ship, crew, journal, map, system) is
+    reachable from it in ≤2 inputs, and no harbour job (sell, fit, paint, decorate, hire) appears in it.
+14. The map shows only seen discoveries; a placed pin appears on the compass within 1 frame and clears within 30 m.
 
 ## Open Questions
 1. ~~Gamepad anchor~~ CLOSED by owner: **Y** (matches 02; B stays Back in screens).
 2. ~~Action bar fade~~ CLOSED by `/clean-ui` pass: prompts are Ambient (outlined, no plate); Settings offer Context only / Off.
 3. Should crew efficiency ever be shown as a number (e.g. tooltip)? PROPOSED: no.
-4. ~~HUD auto-fade~~ CLOSED: replaced by attention states (Ambient at rest, Focused on trigger, peek). Validate by H1
-   observer notes: do players find Shells when they want them (peek / screens)?
+4. ~~HUD auto-fade~~ CLOSED: replaced by attention states (Ambient at rest, Focused on trigger, Inspect). Validate by H1
+   observer notes: do players find Shells when they want them (Inspect / screens)?
 
 ## Interface values
 | Value | Number / name | Consumer |
 |---|---|---|
 | HUD elements | Cargo, Shells (hidden at sea), Compass (+region on entry), Action prompts, Activity log/chat, Speed (transient), Hint pill — states per relevance matrix | 02, 04, 05, 03 |
 | HUD footprint | ≤3% at rest by glyph bounds (1.6% as specified), no plates at rest | review gate |
-| HUD states | Hidden · Ambient (no plate, outlined cream glyphs 92%) · Focused (Ink Glass `#33273B` @ 70%, r10, 1.2×, 150 ms) · peek Tab/LB | 08, 09 |
+| HUD states | Hidden · Ambient (no plate, outlined cream glyphs 92%) · Focused (Ink Glass `#33273B` @ 70%, r10, 1.2×, 150 ms) · Inspect hold F/LB | 08, 09 |
 | Surfaces | Paper = `#FFF6E3`, 2 px `#6B4A35`, r14 (screens) | 08, 09 |
 | Type (1080p, S = 1) | screen title 28/600 · heading 22/600 · body 20/500 · small 18/500 (floor) · glyph 13–15/800 inside keycaps · mock fonts Fredoka (titles) + Nunito (all else); doc 09 picks the shipping pair | 08, 09 |
 | Harbour places | Fishmonger (sell) 600×420 · Shipyard (fit + paint) full-screen, rail 560×880 · Inn crew board (hire) 640×370 · confirm 420×190; ≤2 clicks + 1 confirm ≥100 | 05, 11, 04 |
-| Crew panel / Journal | 520×330 / 720×400 | 04, 03 |
+| Menu (Tab) | Paper 1280×760; tabs Cargo · Ship · Crew · Journal · Map · System | 04, 03, 11 |
+| Map (M) | full screen chart; 2 zoom levels; 1 pin (shows on compass) | 03 |
 | Crew glyph states | fishing / resting / not-in-zone (crew panel + log) | 04 |
 | Log events | species first per trip, new species, Uncommon+, hold half/full, region, discovery, sale, hull bought, crew hired, cosmetic earned, ping, crew left zone | 04, 03, 05, 06, 11 |
 | Region label | on crossing 50% of `TransitionBand`, 6 s | 03 |

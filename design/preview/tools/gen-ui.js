@@ -72,8 +72,8 @@ const glyph = (g) => (g.startsWith('pad:') ? pad(g.slice(4)) : g.split('+').map(
 // Action bar: items [glyph, verb, opts]
 const bar = (items, o = {}) => `<div class="lo-bar ${o.cls || ''}" style="${css(o.pos || { left: 32, bottom: 32 })}">${items.map(([g, v, f = {}]) =>
   `<span class="lo-act${f.hi ? ' lo-act--hi' : ''}${f.hover ? ' lo-act--hover' : ''}">${glyph(g)}<span>${esc(v)}</span></span>`).join('')}</div>`;
-const SAIL_KB = [['W+A+S+D', 'Sail'], ['Space', 'Anchor'], ['C', 'Crew'], ['J', 'Journal'], ['Enter', 'Chat'], ['Esc', 'Menu']];
-const SAIL_PAD = [['pad:LS', 'Sail'], ['pad:Y', 'Anchor'], ['pad:View', 'Crew · Journal'], ['pad:↑', 'Log'], ['pad:Menu', 'Menu']];
+const SAIL_KB = [['W+A+S+D', 'Sail'], ['Space', 'Anchor'], ['M', 'Map'], ['F', 'Inspect (hold)'], ['Tab', 'Menu']];
+const SAIL_PAD = [['pad:LS', 'Sail'], ['pad:Y', 'Anchor'], ['pad:View', 'Map'], ['pad:LB', 'Inspect (hold)'], ['pad:Menu', 'Menu']];
 
 /* ------------------------------------------------------------------ HUD widgets */
 function cargo(load, cap, o = {}) {
@@ -133,7 +133,7 @@ function hudSailing(opt = {}) {
     bar(opt.bar || (pad ? SAIL_PAD : SAIL_KB), { cls: F('bar') }),
     opt.speed ? speed(...opt.speed) : '',
     opt.hint ? hint(opt.hint) : '',
-    opt.peekTag ? `<div class="lo-peektag">${key('Tab')} held · peek</div>` : '',
+    opt.peekTag ? `<div class="lo-peektag">${key('F')} held · Inspect</div>` : '',
   ].join('') + `</div>`;
 }
 
@@ -275,6 +275,85 @@ function pauseSettings() {
   return world('ui_bg_day', menu + set + bar([['Esc', 'Back'], ['Enter', 'Select']], { cls: 'lo-focus' }), { dim: 0.42 });
 }
 
+/* --- Menu (Tab): Cargo · Ship · Crew · Journal · Map · System */
+const MENU_TABS = [['cargo', 'Cargo', 'fish'], ['ship', 'Ship', 'hull'], ['crew', 'Crew', 'person'], ['journal', 'Journal', 'journal'], ['map', 'Map', 'pennant'], ['system', 'System', 'gear']];
+function menuFrame(tab, body, o = {}) {
+  const tabs = MENU_TABS.map(([k, n, i]) => `<span class="${k === tab ? 'on' : ''}">${ic(i, 18)} ${n}</span>`).join('');
+  const panel = paper({ left: 320, top: 190, width: 1280, height: 640 }, `<div class="lo-mtabs">${tabs}<span class="lo-mt-hint">${key('Q')} ${key('E')}</span></div><div class="lo-mbody">${body}</div>`);
+  const b = bar(o.bar || [['Q+E', 'Tab'], ['Tab', 'Close']], { cls: 'lo-focus' });
+  return world(o.bg || 'ui_bg_day', panel + shells(158, { cls: 'lo-focus' }) + b, { dim: 0.42 });
+}
+function tabCargo() {
+  const rows = [['Sand sprat', 9], ['Harbour mackerel', 6], ['Blue wrasse', 3, 'new'], ['Ribbon eel', 1], ['Sun flounder', 1, 'uncommon'], ['Silver darter', 3]];
+  return `<div class="lo-mcols"><div><h6 class="lo-mh">In the hold</h6><table class="lo-rows"><tbody>${rows.map((r) => `<tr><td class="ic">${ic('fish', 24)}</td><td>${r[0]}${r[2] ? ` <span class="lo-chip">${r[2]}</span>` : ''}</td><td class="r"><b>×${r[1]}</b></td></tr>`).join('')}</tbody></table></div>
+  <div class="lo-mside"><h6 class="lo-mh">Hold</h6><div class="lo-big">23 <small>/ 32</small></div><span class="lo-track lo-track--paper lo-track--wide"><i style="width:${Math.round(360 * 23 / 32)}px"></i></span>
+  <p class="lo-note">The crew keep fishing until the hold is full. Sell at the Fishmonger in the harbour.</p></div></div>`;
+}
+function tabShip() {
+  const slots = [['S', 'empty', ''], ['M', 'Fish hold', '120 kg · +12 hold'], ['S', 'Bunk', '60 kg · +1 berth']];
+  return `<div class="lo-mcols"><div><h6 class="lo-mh">Skiff · "Marigold II"</h6>${slots.map(([s, n, d]) => `<div class="lo-item">${ic(n === 'empty' ? 'crate' : n === 'Bunk' ? 'bunk' : 'hatch', 28)}<div><b>${s} slot · ${n}</b><small>${d || 'Free slot'}</small></div></div>`).join('')}
+  <h6 class="lo-mh" style="margin-top:18px">Decor</h6><p class="lo-note" style="margin-top:0">Masthead: Pennant · Rail: Brass lamp · 3 points empty</p></div>
+  <div class="lo-mside"><h6 class="lo-mh">Load</h6><div class="lo-big">180 <small>/ 200 kg</small></div><span class="lo-track lo-track--paper lo-track--wide"><i style="width:${Math.round(360 * 180 / 200)}px"></i></span>
+  <p class="lo-note">Hold 26 · Crew berths 3 · No keel</p><p class="lo-note">${ic('harbour', 18, ' style="display:inline;vertical-align:-3px"')} Change her at the Shipyard.</p></div></div>`;
+}
+function tabCrew() {
+  const crew = [['Mabel', 1, 'rod', 'Fishing', 'Steady hands', 'Hums and taps her foot'], ['Pip', 2, 'rod', 'Fishing', 'Quick hands', 'Waves at gulls'], ['Tomo', 3, 'dots', 'Not in a fishing spot', 'Steady hands', 'Points at whales']];
+  return crew.map(([n, i, g, s, e, f]) => `<div class="lo-crow">${dummy(n, 56)}<div class="lo-crow-n"><b>${n}</b><small>#${i} · ${f}</small></div><div class="lo-crow-s">${ic(g, 20)}<span>${s}</span><small>${e}</small></div></div>`).join('');
+}
+function tabJournal() {
+  const fish = [['Sand sprat', 'The Shallows'], ['Harbour mackerel', 'The Shallows'], ['Blue wrasse', 'The Shallows'], ['Ribbon eel', 'The Shallows'], ['Sun flounder', 'The Shallows'], ['Silver darter', 'The Shallows'], ['Bream', 'The Shallows'], [null], [null], [null], [null]];
+  const cells = fish.map(([n, r]) => n ? `<div class="lo-jc">${ic('fish', 36)}<b>${n}</b><small>${r}</small></div>` : `<div class="lo-jc lo-jc--sil"><span>${ic('fish', 36)}</span><b>Not seen yet</b><small>&nbsp;</small></div>`).join('');
+  return `<div class="lo-ptabs" style="margin:0 0 12px"><span class="on">Fish · 7 of 11 seen</span><span>Places · 3 of 5</span></div><div class="lo-jg lo-jg--4">${cells}</div>`;
+}
+function tabSystem() {
+  const row = (l, ctl) => `<div class="lo-set"><span>${l}</span>${ctl}</div>`;
+  const seg = (opts, on) => `<span class="lo-seg2">${opts.map((o) => `<i class="${o === on ? 'on' : ''}">${o}</i>`).join('')}</span>`;
+  const slider = (v, lab) => `<span class="lo-sl"><i style="width:${v}%"></i><b style="left:${v}%"></b></span><em>${lab}</em>`;
+  const side = `<div class="lo-menu">${['Resume', 'Settings', 'Companion window', 'Controls', 'Quit to desktop'].map((m, i) => `<span class="${i === 1 ? 'on' : ''}">${m}${i === 2 ? ' <kbd>F9</kbd>' : ''}</span>`).join('')}<small>The sea keeps going while you are here.</small></div>`;
+  const set = `<div><div class="lo-ptabs lo-ptabs--set" style="padding-top:0"><span class="on">Display</span><span>Audio</span><span>Controls</span><span>Accessibility</span></div>
+    ${row('UI scale', slider(29, '100%'))}${row('Action bar', seg(['Full', 'Context', 'Off'], 'Full'))}${row('Activity log lines', slider(50, '12 s'))}
+    ${row('HUD style', seg(['Ambient', 'Outlined', 'Always backed'], 'Ambient'))}${row('Button prompts', seg(['Auto', 'Keyboard', 'Xbox', 'PlayStation'], 'Auto'))}<p class="lo-note">Changes preview live behind this panel.</p></div>`;
+  return `<div class="lo-mcols lo-mcols--sys">${side}${set}</div>`;
+}
+
+/* --- Map (M): painted chart. World x[-800,800], y[-200,1400] (doc 03) */
+function chart(o = {}) {
+  const S = o.scale || 0.5625, cx = o.cx ?? 960, cy = o.cy ?? 540, my = o.midY ?? 600;
+  const X = (x) => cx + x * S, Y = (y) => cy - (y - my) * S;
+  const wx = (a) => X(a).toFixed(1), wy = (a) => Y(a).toFixed(1);
+  const sea = (y0, y1, fill) => `<rect x="${wx(-800)}" y="${wy(y1)}" width="${(1600 * S).toFixed(1)}" height="${((y1 - y0) * S).toFixed(1)}" fill="${fill}"/>`;
+  const coast = `M ${wx(-800)} ${wy(-20)} L ${wx(-560)} ${wy(-10)} Q ${wx(-470)} ${wy(60)} ${wx(-430)} ${wy(40)} L ${wx(-300)} ${wy(5)} L ${wx(-130)} ${wy(0)} L ${wx(-120)} ${wy(-160)} L ${wx(120)} ${wy(-160)} L ${wx(130)} ${wy(0)} L ${wx(420)} ${wy(10)} Q ${wx(560)} ${wy(40)} ${wx(800)} ${wy(15)} L ${wx(800)} ${wy(-200)} L ${wx(-800)} ${wy(-200)} Z`;
+  const buoys = Array.from({ length: 15 }, (_, i) => `<circle cx="${wx(-700 + i * 100)}" cy="${wy(500)}" r="3.5" fill="#FFF6E3" stroke="#33273B" stroke-width="1.5"/>`).join('');
+  const place = (x, y, i, n, up) => `<g transform="translate(${wx(x)} ${wy(y)})"><circle r="19" fill="#FFF6E3" stroke="#33273B" stroke-width="2"/><g transform="translate(-12 -12)" color="#33273B">${ic(i, 24)}</g><text y="${up ? -28 : 38}" text-anchor="middle" class="lo-chart-l">${n}</text></g>`;
+  const boat = (x, y, deg) => `<g transform="translate(${wx(x)} ${wy(y)}) rotate(${deg})"><path d="M0 -20 L12 14 L0 7 L-12 14 Z" fill="#E8553F" stroke="#33273B" stroke-width="2.5" stroke-linejoin="round"/></g>`;
+  const wake = `<path d="M ${wx(20)} ${wy(150)} Q ${wx(60)} ${wy(200)} ${wx(95)} ${wy(232)}" fill="none" stroke="#FFF6E3" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round"/>`;
+  const ping = `<g transform="translate(${wx(330)} ${wy(350)})"><circle r="26" fill="none" stroke="#FF9B21" stroke-width="3"/><circle r="26" fill="none" stroke="#FF9B21" stroke-width="7" stroke-dasharray="40 200" opacity=".55" transform="rotate(-90)"/><g transform="translate(-12 -12)" color="#C76A00">${ic('whale', 24)}</g></g>`;
+  const pin = `<g transform="translate(${wx(150)} ${wy(1050)})"><path d="M0 0 C -14 -18 -14 -34 0 -34 C 14 -34 14 -18 0 0 Z" fill="#6E6AA8" stroke="#33273B" stroke-width="2"/><circle cy="-23" r="4.5" fill="#FFF6E3"/><text x="16" y="-18" class="lo-chart-l" text-anchor="start">Your pin</text></g>`;
+  return `<svg class="lo-bg" viewBox="0 0 1920 1080" aria-hidden="true">
+  <defs><pattern id="lo-hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="10" height="10" fill="#A9C7CF"/><path d="M0 0 V10" stroke="#7FA2B4" stroke-width="3"/></pattern>
+  <radialGradient id="lo-vig" cx="50%" cy="50%" r="70%"><stop offset=".6" stop-color="#F3E6C8" stop-opacity="0"/><stop offset="1" stop-color="#C9B48A" stop-opacity=".55"/></radialGradient></defs>
+  <rect width="1920" height="1080" fill="#EFE2C4"/>
+  <g stroke="none">${sea(1300, 1400, '#C8D8DC')}${sea(650, 1300, '#9DBDCB')}${sea(500, 650, 'url(#lo-hatch)')}${sea(0, 500, '#A6DAD3')}${sea(-200, 0, '#A6DAD3')}</g>
+  <path d="M ${wx(-800)} ${wy(1300)} H ${wx(800)}" stroke="#33273B" stroke-width="1.5" stroke-dasharray="6 6" opacity=".5"/>
+  <g opacity=".35" stroke="#33273B" stroke-width="1.6" fill="none">${[760, 880, 1000, 1120, 1240].map((y, i) => `<path d="M ${wx(-650 + (i % 2) * 60)} ${wy(y)} q 18 -8 36 0 t 36 0 M ${wx(150 - (i % 2) * 80)} ${wy(y + 30)} q 18 -8 36 0 t 36 0"/>`).join('')}</g>
+  ${buoys}
+  <path d="${coast}" fill="#D9C79F" stroke="#33273B" stroke-width="3" stroke-linejoin="round"/>
+  <g transform="translate(${wx(0)} ${wy(-95)})"><rect x="-22" y="-16" width="44" height="32" rx="6" fill="#FFF6E3" stroke="#33273B" stroke-width="2"/><g transform="translate(-12 -12)" color="#33273B">${ic('harbour', 24)}</g></g>
+  <text x="${wx(0) * 1 + 84}" y="${wy(-95) * 1 + 6}" text-anchor="start" class="lo-chart-l">Harbour</text>
+  <text x="${wx(-520)}" y="${wy(320)}" class="lo-chart-r">The Shallows</text>
+  <text x="${wx(-520)}" y="${wy(900)}" class="lo-chart-r lo-chart-r--cool">The Swells</text>
+  <g transform="translate(${wx(-520)} ${wy(860)})" color="#33273B"><g transform="translate(0 -2) scale(.8)">${ic('keel', 24)}</g><text x="26" y="16" class="lo-chart-l" text-anchor="start">Needs a keel</text></g>
+  ${place(-450, 80, 'harbour', 'Gull Point', 1)}${place(250, 300, 'wreck', 'Marigold wreck')}${place(620, 180, 'rock', 'Turtle Rock')}
+  ${ping}${wake}${boat(110, 250, 32)}${pin}
+  <g transform="translate(1700 190)" stroke="#33273B" fill="none" stroke-width="2"><circle r="44" stroke-opacity=".5"/><path d="M0 -58 L8 0 L0 10 L-8 0 Z" fill="#33273B"/><path d="M0 58 L8 0 M0 58 L-8 0"/><text y="-66" text-anchor="middle" class="lo-chart-l" stroke="none" fill="#33273B">N</text></g>
+  <rect width="1920" height="1080" fill="url(#lo-vig)"/></svg>`;
+}
+function mapFull() {
+  const title = `<div class="lo-map-title">The Little Ocean <small>Chart</small></div>`;
+  const tip = `<div class="lo-map-tip">${ic('whale', 18)} Whale pod · seen 3 min ago</div>`;
+  return world(null, chart() + title + tip + bar([['Click', 'Pin'], ['R', 'Clear pin'], ['F', 'Centre'], ['Wheel', 'Zoom'], ['M', 'Close']], { cls: 'lo-focus' }), {});
+}
+
 /* --- Companion 512x320 */
 function companion() {
   return `<div class="lo-stage lo-stage--512"><div class="lo-canvas lo-canvas--512"><img class="lo-bgimg" src="shots/ui_bg_day.webp" alt="" style="left:-250px;top:-210px;width:1024px;height:576px">
@@ -310,6 +389,7 @@ function section() {
 <li><b>Activity log + chat</b> above the bar. There is no box when idle. Lines fade after 12 s. Hover or L opens it with tabs. Routine catches are not logged.</li>
 <li><b>One place, one verb.</b> The Fishmonger sells, the Shipyard fits and paints, the Inn crew board hires. The "Second Hand" upgrade is gone.</li>
 <li><b>Ship fitting (new doc 11).</b> Hulls have S/M/L slots, a keel mount and a load limit. The Skiff can't carry the crate, hold and bunk together. The Swell keel needs the Cutter.</li>
+<li><b>Action bar</b>: Sail · Anchor · Map (M) · Inspect (hold F) · Menu (Tab). <b>Menu</b> has tabs Cargo · Ship · Crew · Journal · Map · System. <b>Map</b> is a full-screen painted chart.</li>
 <li><b>Paint and Decor.</b> Colours and hull patterns, plus small objects (flag, roof decor, lamps, figurehead, name board) on the decor points of each hull frame: Skiff 5, Cutter 7. Looks only.</li></ul>
 <p class="lo-muted">Lessons and checklists: <code>design/ux/ui-knowledge.md</code>. Spec: docs 10 and 11. Backgrounds are 1080p renders of the live preview scene, so the scale is true.</p></details>`;
 
@@ -321,13 +401,13 @@ function section() {
     ${fig(world('ui_bg_day', hudSailing({ heading: 40, ping: true, sub: '<b>Whale pod</b> · NE · 240 m', subAmber: true, lines: [{ who: 'Ana', text: 'whales by the lighthouse!', chat: 1 }, { who: 'Kai', text: 'on my way', chat: 1 }], logOpen: true, tab: 'Chat', input: 'omw, see you there', speed: [0, 0, { anchored: true }] })),
       '<b>C. Enter pressed: chat opens.</b> The box, history and input appear only now (Focused). Esc or send returns to bare fading lines. The ping marker is the one amber thing on the compass.')}</div>` +
     `<div class="lo-row2">${fig(world('ui_bg_day', hudSailing({ peek: true, peekTag: true, sub: 'The Shallows', shells: 158, lines: [{ who: 'Pip', text: 'landed a Harbour mackerel', tag: 'new' }] })),
-      '<b>D. Peek (hold Tab / LB).</b> Everything Focused, including Shells, for as long as it is held. Hiding never withholds information.')}
+      '<b>D. Inspect (hold F / LB).</b> Everything Focused, including Shells, for as long as it is held. Hiding never withholds information.')}
     ${fig(world('ui_bg_day', hudSailing({ shellsPlus: 84, shells: 242, focus: [], lines: [{ text: 'Sold 20 fish for 84 Shells' }] })),
       '<b>E. Value change.</b> After a sale the Shells counter appears for a moment with "+84", then fades away again at sea.')}</div>` +
     SPEC([['States', 'Hidden · Ambient (no plate, no outline or shadow: cream glyphs at 92%, printed into the scene) · Focused (Ink Glass 70% plate, 1.2×, 150 ms ease) · Interruptive: none in normal play'],
       ['Cargo', 'Ambient top-left · Focused 6 s when the hold fills, and in the Fishmonger'], ['Shells', 'Hidden at sea · "+N" lift on change · Focused (plate, 1.2×) in Fishmonger, Shipyard, Inn · peek'],
       ['Compass', 'Ambient ticks + letters, no strip · ping marker amber · region pill 6 s on entry'], ['Prompts', 'Ambient strip, keycaps always solid cream · Focused inside screens (screen prompts) · Settings: Full / Context / Off'],
-      ['Log + chat', 'Ambient lines fade 12 s, no box · hover/L = history (Focused) · Enter = chat box + input (Focused) · Esc closes'], ['Peek', 'hold Tab / LB: all Focused while held'], ['Speed', 'Ambient, only while the throttle changes (+3 s) or anchored']]));
+      ['Log + chat', 'Ambient lines fade 12 s, no box · hover/L = history (Focused) · Enter = chat box + input (Focused) · Esc closes'], ['Inspect', 'hold F / LB: all Focused while held'], ['Speed', 'Ambient, only while the throttle changes (+3 s) or anchored']]));
 
   const s2 = screen('fish', 2, 'Fishmonger: sell', 'Selling only. One button sells the whole hold at fixed prices. Close with Esc. There is no ✕ button.',
     fig(fishmonger('rows'), '<b>A.</b> Docked, E pressed: the catch table and Sell all. The bar shows the screen\'s own prompts.') +
@@ -352,12 +432,16 @@ function section() {
     `<div class="lo-row2">${fig(crewBoard('ok'), '<b>A.</b> Bunk fitted, so berth #3 is free. Hire Tomo for 50 Shells (one-off, no wages).')}${fig(crewBoard('nobunk'), '<b>B.</b> No free berth: Hire disabled, with one line saying where to get a bunk. It is not repeated anywhere else.')}</div>` +
     SPEC([['Panel', 'Paper 640×420 · aboard row (dummy + name + slot) · free berths · candidates'], ['Rules', 'fee 50 · needs a berth · crew without a berth wait at the Inn, never lost (04, 11)']]));
 
-  const s6 = screen('crew', 6, 'Crew panel and journal', 'Crew information lives here now, not on the HUD. Both are read-only, open over the sea, and close with the same key.',
-    `<div class="lo-row2">${fig(world('ui_bg_day', crewPanel() + bar([['C', 'Close'], ['J', 'Journal']], { cls: 'lo-focus' }) + `<div class="lo-amb">${cargo(23, 32)}</div>`, { dim: 0.3 }), '<b>A.</b> Crew (C): name + slot number + state glyph and word, efficiency as words, never a number.')}
-    ${fig(world('ui_bg_day', journal() + bar([['J', 'Close'], ['Q+E', 'Tab']], { cls: 'lo-focus' }) + `<div class="lo-amb">${cargo(23, 32)}</div>`, { dim: 0.3 }), '<b>B.</b> Journal (J): what you have seen. Silhouettes for the rest, and no percentages.')}</div>`);
+  const s6 = screen('menu', 6, 'Menu (Tab): cargo, ship, crew, journal, map, system', 'One door for everything that is not a harbour job. Tabs switch with Q / E (LB / RB); C and J still jump straight to their tabs. Read-only at sea: the Ship tab shows her, the Shipyard changes her. The world keeps running behind it.',
+    `<div class="lo-row2">${fig(menuFrame('cargo', tabCargo()), '<b>A.</b> Cargo: what is in the hold, by species. No prices at sea (the Fishmonger shows value).')}${fig(menuFrame('ship', tabShip()), '<b>B.</b> Ship: hull, fitted items, load, decor and name, read-only, with a pointer to the Shipyard.')}</div>` +
+    `<div class="lo-row2">${fig(menuFrame('crew', tabCrew()), '<b>C.</b> Crew: name + slot number + state glyph and word; efficiency as words, never a number.')}${fig(menuFrame('journal', tabJournal()), '<b>D.</b> Journal: what you have seen; silhouettes for the rest; no percentages.')}</div>` +
+    fig(menuFrame('system', tabSystem(), { bar: [['Q+E', 'Tab'], ['Enter', 'Select'], ['Tab', 'Close']] }), '<b>E.</b> System (Esc at sea opens here): resume, settings, companion window, controls, quit. Display settings include the action bar mode and HUD style (Ambient / Outlined / Always backed).') +
+    SPEC([['Frame', 'Paper 1280×760 centred · tab row 56 px · world dimmed 42% · Shells Focused top-right'], ['Tabs', 'Cargo · Ship · Crew · Journal · Map · System · Q/E or LB/RB · C, J, M, Esc jump to a tab'], ['Never here', 'sell, fit, paint, decorate, hire (harbour places only)']]));
 
-  const s7 = screen('menu', 7, 'Pause menu and settings', 'Missing from the first draft. The world keeps moving behind the menu in solo play. HUD comfort settings live together under Display.',
-    fig(pauseSettings(), '<b>A.</b> Esc → Settings → Display: UI scale 80–150%, HUD fade, Action bar Full / Context / Off, log line life, HUD style Ambient / Always backed (plates on every element, for players who prefer them), prompt style.'));
+  const s7 = screen('map', 7, 'Map (M): the big chart', 'A full-screen painted chart, not a minimap: where am I, where is home, where have I not been. It shows only what you have seen, with no question marks and no completion percentage.',
+    fig(mapFull(), '<b>A.</b> Whole-sea view: your boat (coral arrow) heading north-east past the Marigold wreck, an active whale ping (amber ring thinning as it expires), the swell-buoy line and the hatched transition band. The Swells are named with "Needs a keel". One pin, which also shows on the compass. R2 places stay off the chart until seen.') +
+    SPEC([['Shows', 'boat + heading · harbour · region names · seen places (28 px icons, name on hover) · active ping · one pin'], ['Never', 'undiscovered places, fish spots, completion %, other players (solo)'],
+      ['Input', 'drag / RS pan · wheel / triggers zoom (whole sea, region) · F / RS click centre · Click / A pin · R clear · M / Esc close'], ['Scale', '1600 m → 900 px at whole-sea (0.56 px/m); region zoom 1.5× · positions from doc 03']]));
 
   const s8 = screen('swell', 8, 'Swell gate (no keel yet)', 'Show "not yet", never "game over". One hint, one log line, and the reason points at the Shipyard.',
     fig(world('ui_bg_day', hudSailing({ heading: 2, lines: [{ who: 'Mabel', text: "says the swell's too big for the Skiff" }], hint: "The swell's too big for the Skiff. A keel would help.", speed: [2, 2] }), { imgStyle: 'filter:saturate(.9) brightness(.96)' }),
@@ -531,6 +615,23 @@ const STYLE = `
 .lo-sw small{font-size:15px;font-weight:700;line-height:1.1}.lo-sw em{font-style:normal;font-size:13px;font-weight:700;color:#6A5D70;display:inline-flex;gap:3px;align-items:center;line-height:1.1}
 .lo-sw.on{background:#F1EFFB;outline:2px solid #6E6AA8}.lo-sw.lock i{opacity:.75}
 .lo-note{margin:14px 0 0;font-size:16px;color:#6A5D70}
+/* Menu + map */
+.lo-mtabs{display:flex;align-items:center;gap:4px;height:56px;padding:0 16px;border-bottom:1px solid #E4D5B7;background:#FBF0DA}
+.lo-mtabs span{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:9px;font-size:18px;font-weight:700;color:#6A5D70}
+.lo-mtabs span.on{background:#33273B;color:#FFF6E3}.lo-mtabs span.lo-mt-hint{margin-left:auto;gap:4px;padding:0}
+.lo-mbody{padding:20px 28px;height:580px;overflow:hidden}
+.lo-mcols{display:grid;grid-template-columns:1fr 420px;gap:40px}.lo-mcols--sys{grid-template-columns:320px 1fr}
+.lo-mh{margin:0 0 10px;font-size:16px;font-weight:800;color:#6A5D70;text-transform:uppercase;letter-spacing:.05em}
+.lo-mside{padding:20px 24px;border-radius:12px;background:#F8EBD0;align-self:start}
+.lo-big{font-family:"Fredoka",sans-serif;font-weight:600;font-size:48px;line-height:1.1;color:#33273B}.lo-big small{font-size:24px;color:#6A5D70}
+.lo-track--wide{width:360px;height:10px;margin:10px 0 4px}
+.lo-jg--4{grid-template-columns:repeat(4,1fr);padding:0}
+.lo-mbody .lo-crow{padding:12px 4px}
+.lo-mbody .lo-menu{padding:0}
+.lo-chart-l{font:700 17px "Nunito",sans-serif;fill:#33273B}
+.lo-chart-r{font:600 italic 34px "Fredoka","Nunito",sans-serif;fill:#2E6F6A;letter-spacing:.04em}.lo-chart-r--cool{fill:#3E5F7E}
+.lo-map-title{position:absolute;left:48px;top:40px;font-family:"Fredoka",sans-serif;font-weight:600;font-size:34px;color:#33273B}.lo-map-title small{font-size:18px;color:#6A5D70;margin-left:8px}
+.lo-map-tip{position:absolute;left:1186px;top:632px;display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:8px;background:rgba(51,39,59,.85);color:#FFF6E3;font-size:16px;font-weight:700}
 /* Decor points */
 .lo-dp{border-radius:50%;border:2.5px solid rgba(255,246,227,.9);background:rgba(51,39,59,.18);box-shadow:0 0 0 1px rgba(51,39,59,.35)}
 .lo-dp--full::after{content:"";position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px;border-radius:50%;background:#FFF6E3}
