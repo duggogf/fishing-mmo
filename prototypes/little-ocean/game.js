@@ -291,7 +291,7 @@ function anchorEl(html, getPos, cls = 'wl', life = 0) {
 }
 function removeAnchor(a) { if (!a) return; anchors.delete(a); a.el.remove(); }
 function updateAnchors() {
-  for (const a of anchors) { const p = toScreen(a.getPos()); if (!p) { a.el.style.display = 'none'; continue; } a.el.style.display = ''; a.el.style.transform = `translate(${p.x}px,${p.y - a.dy}px) translate(-50%,-100%)`;
+  for (const a of anchors) { const p = toScreen(a.getPos()); if (!p) { a.el.style.display = 'none'; continue; } a.el.style.display = ''; a.el.style.transform = `translate(${p.x + (a.dx || 0)}px,${p.y - a.dy - (a.dy0 || 0)}px) translate(-50%,-100%)`;
     if (a.life) { const u = (S.t - a.born) / a.life; a.dy = 40 * ease.out(Math.min(1, u)); a.el.style.opacity = u > 0.7 ? 1 - (u - 0.7) / 0.3 : 1; if (u >= 1) removeAnchor(a); } }
 }
 
@@ -306,7 +306,7 @@ function crewWater(c) { const [lx, lz] = c.water; return boatPoint(lx, 0, lz).se
 function startBite(c) {
   c.state = 'bite'; c.stateT = 0; snd.bite();
   removeAnchor(c.bang); const head = () => c.d.J.neck.localToWorld(new THREE.Vector3(0, 0.75, 0));
-  c.bang = anchorEl('<div class="bang">!</div>', head); c.bang.el.firstChild.animate([{ transform: 'scale(0)' }, { transform: 'scale(1.3)', offset: 0.6 }, { transform: 'scale(1)' }], { duration: 300, easing: 'cubic-bezier(.34,1.56,.64,1)' });
+  c.bang = anchorEl('<div class="bang">!</div>', head); c.bang.dx = -48; c.bang.el.firstChild.animate([{ transform: 'scale(0)' }, { transform: 'scale(1.3)', offset: 0.6 }, { transform: 'scale(1)' }], { duration: 300, easing: 'cubic-bezier(.34,1.56,.64,1)' });
 }
 function landFish(c) {
   const spot = inSpot(); const region = spot ? spot.region : (S.x > C('regionSwellsX') ? 2 : 1);
@@ -317,7 +317,7 @@ function landFish(c) {
   const p = toScreen(w); p && fxp.burst(p.x, p.y, 16 + sp.rarity * 10, { col: ['#FFF6E3', '#CFEFEA', '#9FD8D6'], v: 260, g: 700, size: 5, a0: -Math.PI, spread: Math.PI }, rng);
   if (sp.rarity === 2) { beam.position.set(w.x, 6, w.z); beamT = 0; snd.rare(); }
 }
-let fxRingT = 9, beamT = 9; const fxRingPos = new THREE.Vector3();
+const activeLabels = new Set(); let fxRingT = 9, beamT = 9; const fxRingPos = new THREE.Vector3();
 function fishArrived(f) {
   const { c, sp, size } = f; late.remove(f.m);
   c.state = 'cheer'; c.stateT = 0; removeAnchor(c.bang); c.bang = null;
@@ -326,7 +326,8 @@ function fishArrived(f) {
   c.streak = S.t - (c.lastCatch || -99) < 14 ? c.streak + 1 : 0; c.lastCatch = S.t;
   snd.catchNote(globalStreak());
   const head = () => c.d.J.neck.localToWorld(new THREE.Vector3(0, 0.7, 0));
-  const lab = anchorEl(`<div class="lab">${ic('fish')}<span>${sp.name} <em>· ${size} cm</em></span><span class="plus">+1</span></div>`, head, 'wl', 2.2);
+  for (const o of activeLabels) { o.dy0 = (o.dy0 || 0) + 46; if (o.life > 1.2 + (S.t - o.born)) o.life = Math.max(S.t - o.born + 0.6, 1.2); }
+  const lab = anchorEl(`<div class="lab">${ic('fish')}<span>${sp.name} <em>· ${size} cm</em></span><span class="plus">+1</span></div>`, head, 'wl', 2.2); activeLabels.add(lab); setTimeout(() => activeLabels.delete(lab), 2300);
   lab.el.firstChild.animate([{ transform: 'scale(.5)', opacity: 0 }, { transform: 'scale(1.12)', opacity: 1, offset: 0.55 }, { transform: 'scale(1)', opacity: 1 }], { duration: 320, easing: 'cubic-bezier(.34,1.56,.64,1)' });
   const hp = toScreen(head());
   if (hp) { fxp.burst(hp.x, hp.y - 20, 8 + sp.rarity * 14, { col: sp.rarity ? ['#FFE7A6', '#FFF6E3', '#FF9B21'] : ['#FFF6E3'], shape: sp.rarity ? 'star' : 'dot', v: 200, g: 150, size: sp.rarity ? 7 : 4, life: 0.9 }, rng);
@@ -339,7 +340,7 @@ function fishArrived(f) {
 const globalStreak = () => Math.min(9, Object.values(crew).reduce((a, c) => a + (S.t - (c.lastCatch || -99) < 14 ? 1 : 0), 0) + Object.values(crew).reduce((a, c) => Math.max(a, c.streak), 0));
 function card(sp, size, isNew, pb) {
   const el = document.createElement('div'); el.className = 'card' + (sp.rarity === 2 ? ' plus' : '');
-  const stars = '★'.repeat(sp.rarity + 1) + '☆'.repeat(2 - sp.rarity);
+  const stars = '★'.repeat(sp.rarity + 1) + `<span style="color:#D8CBB0">${'★'.repeat(2 - sp.rarity)}</span>`;
   el.innerHTML = `${isNew ? '<span class="ribbon">NEW!</span>' : pb ? '<span class="ribbon">Biggest yet!</span>' : ''}<svg class="fishpic" viewBox="0 0 72 42"><path d="M4 21c10-14 32-17 48-6l11-9v30l-11-9c-16 11-38 8-48-6z" fill="${sp.col}" stroke="#33273B" stroke-width="2.5" stroke-linejoin="round"/><path d="M8 24c12 8 30 9 44 3" fill="none" stroke="${sp.belly}" stroke-width="4" stroke-linecap="round"/><circle cx="44" cy="18" r="2.6" fill="#33273B"/></svg>
     <h4>${sp.name}</h4><p><span class="size">${size} cm</span> · <span class="stars">${stars}</span> ${RARITY[sp.rarity]}</p>`;
   $('cards').prepend(el); while ($('cards').children.length > 3) $('cards').lastChild.remove();
@@ -522,7 +523,7 @@ function updateExploration() {
     if (d < C('glintRadius') && !glints[p.id]) {
       glints[p.id] = anchorEl('<div class="glint"></div>', () => new THREE.Vector3(p.pos[0], p.top + 2, p.pos[1]));
       glints[p.id].el.firstChild.animate([{ transform: 'translate(-50%,-50%) scale(.6) rotate(0)', opacity: 0.5 }, { transform: 'translate(-50%,-50%) scale(1.15) rotate(45deg)', opacity: 1 }, { transform: 'translate(-50%,-50%) scale(.6) rotate(90deg)', opacity: 0.5 }], { duration: 1800, iterations: Infinity, easing: 'ease-in-out' });
-      if (!S.glintSeen.has(p.id)) { S.glintSeen.add(p.id); snd.glint(); const c = crew.Tomo; c.state = 'look'; c.stateT = 0; c.lookAt = p; removeAnchor(c.bang); c.bang = anchorEl('<div class="bang q">?</div>', () => c.d.J.neck.localToWorld(new THREE.Vector3(0, 0.75, 0)), 'wl', 2.4); }
+      if (!S.glintSeen.has(p.id)) { S.glintSeen.add(p.id); snd.glint(); const c = crew.Tomo; c.state = 'look'; c.stateT = 0; c.lookAt = p; removeAnchor(c.bang); c.bang = anchorEl('<div class="bang q">?</div>', () => c.d.J.neck.localToWorld(new THREE.Vector3(0, 0.75, 0)), 'wl', 2.4); c.bang.dx = -48; }
     } else if (d >= C('glintRadius') + 20 && glints[p.id]) { removeAnchor(glints[p.id]); delete glints[p.id]; }
   }
   // regions
@@ -604,11 +605,11 @@ function updateBoat(dt) {
   if (vy < -0.9 * A && S.t - S.lastSlap > 1.2 && Math.abs(S.speed) > 2 && A > 0.8) { S.lastSlap = S.t; snd.slap(); S.trauma = Math.min(C('traumaMax'), S.trauma + 0.12 + 0.12 * (A - 0.8)); splashAt(boatPoint(0, 0, -3.8), 14); }
   // wake: two arms of foam puffs from the stern + a bow wave, rate and size scale with speed
   const sp = Math.abs(S.speed), k = sp / C('maxSpeed');
-  if (sp > 0.4) {
+  if (sp > 0.4 && !S.anchored) {
     S.wakeAcc = (S.wakeAcc || 0) + dt * (6 + 34 * k);
     while (S.wakeAcc > 1) { S.wakeAcc -= 1;
-      for (const s of [-1, 1]) { const p = boatPoint(s * (0.9 + rng() * 0.35), 0, 3.5 + rng() * 0.4); const out = 0.7 + 1.3 * k;
-        puff(p.x, p.z, rx * s * out - fx_ * 0.4, rz * s * out - fz_ * 0.4, 0.14 + 0.08 * k, 0.32 + 0.5 * k * (0.6 + rng() * 0.8), 1.8 + 1.4 * k, 0.5 + 0.3 * k); }
+      for (const s of [-1, 1]) { const p = boatPoint(s * (0.9 + rng() * 0.35), 0, 3.5 + rng() * 0.4); const out = (0.7 + 1.3 * k) * 0.6;
+        puff(p.x, p.z, rx * s * out - fx_ * 0.4, rz * s * out - fz_ * 0.4, 0.12 + 0.06 * k, 0.24 + 0.36 * k * (0.6 + rng() * 0.8), 1.4 + 1.6 * k, Math.min(0.6, 0.3 + 0.3 * k)); }
       if (k > 0.3 && rng() < 0.6) { const p = boatPoint(0, 0, -3.95); const s = rng() < 0.5 ? -1 : 1; puff(p.x + rx * s * 0.5, p.z + rz * s * 0.5, rx * s * 3 * k, rz * s * 3 * k, 0.12, 0.45 * k + 0.1, 0.7, 0.75); }
     }
   }
@@ -616,7 +617,7 @@ function updateBoat(dt) {
   if (k > 0.6 && rng() < (k - 0.6) * 0.9) { const p = toScreen(boatPoint(0, 0.3, -3.9)); p && fxp.burst(p.x, p.y, 2, { col: ['#FFFFFF', '#E6F6F3'], v: 180, g: 520, size: 3.5, a0: -Math.PI * 0.9, spread: Math.PI * 0.8, life: 0.6 }, rng); }
   // foam collar + drift wake (preview SDF) on the boat
   for (const m of [fx.collar, fx.wake]) { m.material.uniforms.uOrigin.value.set(S.x, 0, S.z); m.material.uniforms.uYaw.value = S.yaw; }
-  fx.wake.visible = sp < 1.5;
+  fx.wake.visible = sp > 0.3 && sp < 1.5 && !S.anchored;
   fx.ripples.material.uniforms.uOrigin.value.set(S.x, 0, S.z);
   snd.ambience(k, smooth(0.45, 1.35, A), dt);
 }
@@ -644,10 +645,11 @@ function updateCamera(dt) {
   // idle drift: after a while with no input, widen slowly and orbit a touch
   const idle = S.t - S.lastInput > C('idleWiden') && !S.screen; S.idleK = follow(S.idleK, idle ? 1 : 0, 0.25, dt);
   if (idle && S.t - (S.lastHum || -99) > 45) { S.lastHum = S.t; snd.hum(); }
+  { const away = S.t - S.lastInput > 60 && !S.screen; $('bar').style.opacity = away ? 0 : ''; $('log').style.opacity = away ? 0 : ''; }
   if (!S.dragging && S.t - S.lastInput > 1.6) { S.orbitYaw = follow(S.orbitYaw, 0, 1.2, dt); S.orbitPitch = follow(S.orbitPitch, 0, 1.2, dt); }
   let wantYaw = S.yaw + S.yawVel * C('camLeadTurn') + S.orbitYaw + S.idleK * 0.6 * Math.sin(S.t * 0.05);
   const [fx_, fz_] = fwd();
-  let tx = S.x + fx_ * C('camLeadAhead') * S.speed, tz = S.z + fz_ * C('camLeadAhead') * S.speed, ty = 2.8;
+  let tx = S.x + fx_ * C('camLeadAhead') * S.speed, tz = S.z + fz_ * C('camLeadAhead') * S.speed, ty = 4.4;
   let dist = (C('camDist') + C('camSpeedPull') * Math.abs(S.speed)) * S.zoom * (1 + 0.45 * S.idleK), pitch = C('camHeight') + S.orbitPitch + 0.06 * S.idleK;
   if (S.cine) { // discovery push-in: frame the landmark between boat and camera, steering stays live
     const c = S.cine, u = c.t / c.dur, w = Math.sin(Math.min(1, u) * Math.PI) ** 0.7, [px, pz] = c.p.pos;

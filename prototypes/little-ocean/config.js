@@ -27,7 +27,7 @@ window.CONFIG = {
   bandWidth:       { value: 70,   min: 20,   max: 150,  step: 5 },
 
   // ---- camera (02 + bible) ----
-  camDist:         { value: 21,   min: 10,   max: 40,   step: 0.5 },
+  camDist:         { value: 26,   min: 10,   max: 40,   step: 0.5 },
   camHeight:       { value: 0.26, min: 0.08, max: 0.6,  step: 0.01, note: 'pitch, rad' },
   camYawFollow:    { value: 2.4,  min: 0.5,  max: 8,    step: 0.1 },
   camLeadTurn:     { value: 0.38, min: 0,    max: 1,    step: 0.02 },
