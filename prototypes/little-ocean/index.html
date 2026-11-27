@@ -59,6 +59,17 @@ svg.i{width:calc(var(--u)*24);height:calc(var(--u)*24);flex:none;display:block}
 .wl{position:absolute;left:0;top:0;transform:translate(-50%,-100%);pointer-events:none;white-space:nowrap}
 .bang{font-family:"Fredoka",sans-serif;font-weight:600;font-size:calc(var(--u)*34);color:var(--cream);width:calc(var(--u)*44);height:calc(var(--u)*44);border-radius:50%;background:var(--ink);display:flex;align-items:center;justify-content:center;border:3px solid var(--cream)}
 .bang.q{background:var(--wis)}
+.bang.gold{background:#C98A1E;width:calc(var(--u)*56);height:calc(var(--u)*56);animation:bob .3s ease-in-out infinite alternate}
+@keyframes bob{to{transform:translateY(-6px) scale(1.06)}}
+.fight{width:calc(var(--u)*120);height:calc(var(--u)*14);border-radius:99px;background:rgba(51,39,59,.72);border:2px solid var(--cream);overflow:hidden;transition:border-color .1s}
+.fight i{display:block;height:100%;width:0;background:var(--cream);border-radius:99px}
+.fight.gold{width:calc(var(--u)*200);height:calc(var(--u)*18);border-color:#FFE7A6}.fight.gold i{background:linear-gradient(90deg,#FFE7A6,#FF9B21)}
+.fight.slip{border-color:#FFB04D}
+.lab.lost{background:rgba(51,39,59,.6);font-style:italic;opacity:.9}
+#rareTitle{position:fixed;left:50%;top:16%;transform:translateX(-50%);text-align:center;pointer-events:none;opacity:0;z-index:7}
+#rareTitle h1{margin:0;font-family:Fredoka,sans-serif;font-weight:600;font-size:calc(var(--u)*72);color:#FFE7A6;-webkit-text-stroke:calc(var(--u)*2) #6B4A35;letter-spacing:.03em}
+#rareTitle p{margin:calc(var(--u)*4) 0 0;font-family:Fredoka,sans-serif;font-size:calc(var(--u)*30);color:var(--cream)}
+.card img.fishpic{object-fit:contain}
 .lab{font-size:calc(var(--u)*19);color:var(--cream);background:var(--glass);border-radius:calc(var(--u)*9);padding:calc(var(--u)*4) calc(var(--u)*12);display:flex;align-items:center;gap:calc(var(--u)*8)}
 .lab em{font-style:normal;opacity:.8;font-weight:700}
 .lab .plus{color:#FFE7A6}
@@ -89,7 +100,7 @@ svg.i{width:calc(var(--u)*24);height:calc(var(--u)*24);flex:none;display:block}
 #lbT{top:0}#lbB{bottom:0}
 body.cine .lbx{height:9vh}
 body.cine .hud{opacity:.25}
-#stamp{position:fixed;left:50%;top:58%;transform:translate(-50%,-50%);pointer-events:none;opacity:0;text-align:center;z-index:6}
+#stamp{position:fixed;left:50%;top:30%;transform:translate(-50%,-50%);pointer-events:none;opacity:0;text-align:center;z-index:6}
 #stamp .ring{width:calc(var(--u)*150);height:calc(var(--u)*150);margin:0 auto;border-radius:50%;border:calc(var(--u)*6) solid #FFF6E3;display:flex;align-items:center;justify-content:center;color:var(--cream);background:rgba(110,106,168,.55)}
 #stamp .ring svg{width:calc(var(--u)*72);height:calc(var(--u)*72)}
 #stamp h2{margin:calc(var(--u)*14) 0 0;font-family:"Fredoka",sans-serif;font-weight:600;font-size:calc(var(--u)*40)}
@@ -183,6 +194,7 @@ body.cine .hud{opacity:.25}
 </div>
 <div id="cards"></div>
 <div id="title"><h1 id="titleH">The Shallows</h1><p id="titleP">Calm water · Tier 1</p></div>
+<div id="rareTitle"><h1 id="rareH">A rare catch!</h1><p id="rareP">Pearl tuna</p></div>
 <div id="stamp"><div class="ring" id="stampIco"></div><h2 id="stampH">Gull Point</h2><p id="stampP">Discovered · 1 of 5</p></div>
 
 <div class="screen" id="fishScreen"><div class="paper" style="width:calc(var(--u)*640)">

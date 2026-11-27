@@ -86,6 +86,14 @@ export class Sound {
   hum() { [0, 2, 4, 2, 0].forEach((s, i) => this.pluck(noteHz(s), 0.05, 0.35, i * 0.32)); }
   ui(step = 4) { this.pluck(noteHz(step, 1), 0.08, 0.12, 0, false); }
   glint() { this.chime(noteHz(9, 1), 0.05, 0.9); }
+  reel(surge = 0) { this.noise('white', 0.05, 0.03, 3200 + surge * 600, 2400, 0, 4); }
+  snap() { this.noise('white', 0.25, 0.12, 4000, 800); this.pluck(noteHz(4), 0.16, 0.25); this.pluck(noteHz(0, -1), 0.14, 0.5, 0.12); }
+  aw() { this.pluck(noteHz(2), 0.12, 0.4); this.pluck(noteHz(0, -1), 0.12, 0.7, 0.18); }
+  rumble() { if (!this.ctx) return; const c = this.ctx, t = c.currentTime;
+    const s = c.createBufferSource(); s.buffer = this.brown; s.loop = true; const fl = c.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.setValueAtTime(120, t); fl.frequency.exponentialRampToValueAtTime(900, t + 2.4);
+    const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5, t + 2.2); g.gain.exponentialRampToValueAtTime(0.0001, t + 2.8); s.connect(fl).connect(g).connect(this.master); s.start(t); s.stop(t + 2.9);
+    [0, 2, 4, 7, 9].forEach((k, i) => this.pluck(noteHz(k, -1), 0.06 + i * 0.02, 0.3, 0.3 + i * 0.42, false)); }
+  fanfare() { [0, 4, 7, 12].forEach((k, i) => this.pluck(noteHz(k), 0.22, 0.8, i * 0.08)); [7, 9, 12, 14].forEach((k, i) => this.chime(noteHz(k, 1), 0.12, 1.8, 0.35 + i * 0.07)); this.pluck(noteHz(0, -1), 0.25, 1.4, 0.35); this.noise('white', 0.08, 0.6, 6000, 3000, 0.35, 0.5); }
 }
 
 /* ---------------- 2D particle layer (pooled, cap ~220) */
