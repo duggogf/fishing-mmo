@@ -2,7 +2,7 @@
 // Little Ocean — feel prototype. Sailing 3C, automatic fishing, selling, exploration; juice first (juice-bible.md).
 // Rendering reuses the GDD preview's painted-cel scene (scene/, forked). Tuning lives in config.js (window.CONFIG).
 import * as THREE from './vendor/three.module.js';
-import { mixPhase, withDrizzle, swellH, calm } from './scene/phases.js';
+import { mixPhase, withDrizzle, swellH, calm, SWELL_GLSL } from './scene/phases.js';
 import { U, applyPhase, SunShadow, envMat } from './scene/env.js';
 import { PaintPost } from './scene/post.js';
 import { bakeAll } from './scene/paint.js';
@@ -197,7 +197,7 @@ function updateAnchor(dt) {
     if (k >= 1 && !anc.splashed) { anc.splashed = true; anc.world.copy(wp); snd.splash(1.1); snd.noise('brown', 0.35, 0.4, 500, 120); splash3(wp, 22, 1.1); }
     if (anc.splashed) anchor.position.set(anc.world.x, anc.world.y - 0.3 - (anc.t - 0.32) * 3, anc.world.z);
     if (anc.t > 0.55 && !anc.bit) { anc.bit = true; anc.state = 'down'; anc.t = 0;   // bites: the bow is pulled down and forward
-      const f = Math.min(1, Math.abs(S.speed) / C('maxSpeed')); S.ps.v -= 0.22 + 0.75 * f; S.trauma = Math.min(C('traumaMax'), S.trauma + 0.08 + 0.18 * f); if (f > 0.25) { snd.creak(); splash3(boatPoint(0, 0, -4.1).setY(swellH(S.x, S.z, S.t, A)), 14, 0.9); } }
+      const f = Math.min(1, Math.abs(S.speed) / C('maxSpeed')); S.ps.v -= 0.15 + 0.5 * f; S.trauma = Math.min(C('traumaMax'), S.trauma + 0.08 + 0.18 * f); if (f > 0.25) { snd.creak(); splash3(boatPoint(0, 0, -4.1).setY(swellH(S.x, S.z, S.t, A)), 14, 0.9); } }
     chain.visible = true;
   }
   if (anc.state === 'down') { anchor.position.set(anc.world.x, swellH(anc.world.x, anc.world.z, S.t, A) - 1.5 - Math.min(2, anc.t * 3), anc.world.z); chain.visible = true; }
@@ -287,32 +287,40 @@ function updateP3(dt) {
     const sc = lerp(p.s0, p.s1, ease.out(u)); p.s.position.set(p.x, p.y, p.z); p.s.scale.setScalar(sc * 2); p.s.material.opacity = p.op * (p.kind === 'smoke' ? (1 - u) * Math.min(1, u * 6) : 1 - u * u * 0.5); }
 }
 
-/* ---------- speed gauge painted on the sea beside the boat (diegetic; fades when idle) */
-const gaugeCv = document.createElement('canvas'); gaugeCv.width = 512; gaugeCv.height = 300; const gctx = gaugeCv.getContext('2d');
-const gaugeTex = new THREE.CanvasTexture(gaugeCv);
-const gauge = new THREE.Mesh(new THREE.PlaneGeometry(7.2, 4.2), new THREE.MeshBasicMaterial({ map: gaugeTex, transparent: true, depthWrite: false, opacity: 0 }));
-gauge.renderOrder = 3; late.add(gauge); let gaugeKey = '', gaugeK = 0;
-function drawGauge(kn, notchI) {
-  const g = gctx, W = 512, cx = 256, cy = 250, R = 190; g.clearRect(0, 0, W, 300); g.lineCap = 'round';
-  const a0 = Math.PI * 1.08, a1 = Math.PI * 1.92, fr = clamp(kn / (C('maxSpeed') * 1.94), 0, 1);
-  const arc = (r, from, to, w, col) => { g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.arc(cx, cy, r, from, to); g.stroke(); };
-  arc(R, a0, a1, 34, 'rgba(51,39,59,.9)'); arc(R, a0, a1, 24, 'rgba(255,246,227,.35)');
-  if (fr > 0.003) { arc(R, a0, a0 + (a1 - a0) * fr, 24, '#FFF6E3'); }
-  const labels = ['R', '0', '¼', '½', '¾', 'F'];
-  for (let i = 0; i < 6; i++) { const a = a0 + (a1 - a0) * (i / 5), x = cx + Math.cos(a) * (R - 52), y = cy + Math.sin(a) * (R - 52), on = i === notchI + 1;
-    g.fillStyle = on ? '#E8553F' : 'rgba(51,39,59,.85)'; g.beginPath(); g.arc(x, y, on ? 21 : 16, 0, 7); g.fill(); g.strokeStyle = '#FFF6E3'; g.lineWidth = 3; g.stroke();
-    g.fillStyle = '#FFF6E3'; g.font = `800 ${on ? 22 : 18}px Nunito, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(labels[i], x, y + 1); }
-  g.font = '600 64px Fredoka, sans-serif'; g.textAlign = 'center'; g.lineWidth = 10; g.strokeStyle = 'rgba(51,39,59,.9)'; g.strokeText(kn.toFixed(1), cx, cy - 38); g.fillStyle = '#FFF6E3'; g.fillText(kn.toFixed(1), cx, cy - 38);
-  g.font = '800 22px Nunito, sans-serif'; g.lineWidth = 6; g.strokeText('knots', cx, cy + 4); g.fillText('knots', cx, cy + 4);
+/* ---------- speed gauge: a minimal line painted onto the water surface beside the boat (decal-style: the quad is
+   displaced by the same swell as the sea, so waves carry it instead of covering it). Bow end = top speed; 20% up from
+   the stern end = parked; below that = reverse. A dot rides the line with the speed number beside it. */
+const gaugeCv = document.createElement('canvas'); gaugeCv.width = 512; gaugeCv.height = 1024; const gctx = gaugeCv.getContext('2d');
+const gaugeTex = new THREE.CanvasTexture(gaugeCv); gaugeTex.anisotropy = 4;
+const GAUGE = { w: 5.6, len: 7.5, x: -4.6, z: 0.4 };
+const gaugeGeo = new THREE.PlaneGeometry(GAUGE.w, GAUGE.len, 4, 40); gaugeGeo.rotateX(-Math.PI / 2); gaugeGeo.translate(GAUGE.x, 0, GAUGE.z);
+const gaugeMat = new THREE.ShaderMaterial({
+  uniforms: { map: { value: gaugeTex }, opacity: { value: 0 }, uOrigin: { value: new THREE.Vector3() }, uYaw: { value: 0 }, time: U.time, swellA: U.swellA },
+  vertexShader: `uniform vec3 uOrigin; uniform float uYaw, time; varying vec2 vUv;
+${SWELL_GLSL}
+void main() { vUv = uv; float c = cos(uYaw), s = sin(uYaw); vec2 l = position.xz;
+  vec2 w = uOrigin.xz + vec2(c * l.x + s * l.y, -s * l.x + c * l.y); vec2 g; float h = swellH(w, time, g);
+  gl_Position = projectionMatrix * viewMatrix * vec4(w.x, h + 0.06, w.y, 1.0); }`,
+  fragmentShader: `uniform sampler2D map; uniform float opacity; varying vec2 vUv; void main() { vec4 c = texture2D(map, vUv); gl_FragColor = vec4(c.rgb, c.a * opacity); }`,
+  transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4,
+});
+const gauge = new THREE.Mesh(gaugeGeo, gaugeMat); gauge.frustumCulled = false; gauge.renderOrder = 3; late.add(gauge);
+let gaugeKey = '', gaugeK = 0;
+function drawGauge(ms) {
+  const g = gctx, W = 512, H = 1024, x = 60, top = 40, bot = H - 40, len = bot - top, zero = bot - len * 0.2;
+  g.clearRect(0, 0, W, H); g.lineCap = 'round';
+  g.strokeStyle = 'rgba(255,246,227,.55)'; g.lineWidth = 7; g.beginPath(); g.moveTo(x, top); g.lineTo(x, bot); g.stroke();   // the line
+  g.strokeStyle = 'rgba(255,246,227,.8)'; g.lineWidth = 7; g.beginPath(); g.moveTo(x - 16, zero); g.lineTo(x + 16, zero); g.stroke();   // parked mark
+  const f = ms >= 0 ? 0.2 + 0.8 * clamp(ms / C('maxSpeed'), 0, 1) : 0.2 * (1 - clamp(-ms / C('reverseSpeed'), 0, 1)), y = bot - len * f;
+  g.fillStyle = '#FFF6E3'; g.beginPath(); g.arc(x, y, 24, 0, 7); g.fill();
+  g.font = '600 150px Fredoka, Nunito, sans-serif'; g.textBaseline = 'middle'; g.fillText((Math.abs(ms) * 1.944).toFixed(1), x + 50, y + 6);
   gaugeTex.needsUpdate = true;
 }
 function updateGauge(dt) {
-  const kn = Math.abs(S.speed) * 1.944, active = !S.harbour && !S.screen && (kn > 0.3 || S.t - (S.notchT || -9) < 3) && !S.anchored;
+  const active = !S.harbour && !S.screen && !S.anchored && (Math.abs(S.speed) > 0.3 || S.t - (S.notchT || -9) < 3);
   gaugeK = follow(gaugeK, active ? 1 : 0, active ? 5 : 1.2, dt); gauge.visible = gaugeK > 0.01; if (!gauge.visible) return;
-  const key = kn.toFixed(1) + '|' + S.notch; if (key !== gaugeKey) { gaugeKey = key; drawGauge(kn, S.notch); }
-  const p = boatPoint(-4.6, 0, 1.2); p.y = swellH(p.x, p.z, S.t, U.swellA.value) + 0.35;
-  gauge.position.copy(p); gauge.rotation.set(-Math.PI / 2, 0, S.yaw + Math.PI, 'YXZ'); gauge.rotation.set(-Math.PI / 2 + 0.25, S.yaw, 0, 'YXZ');
-  gauge.material.opacity = gaugeK * 0.95; gauge.scale.setScalar(0.92 + 0.08 * gaugeK);
+  const key = S.speed.toFixed(2); if (key !== gaugeKey) { gaugeKey = key; drawGauge(S.speed); }
+  gaugeMat.uniforms.uOrigin.value.set(S.x, 0, S.z); gaugeMat.uniforms.uYaw.value = S.yaw; gaugeMat.uniforms.opacity.value = gaugeK * 0.9;
 }
 
 /* ============================================================ state */
@@ -360,7 +368,7 @@ function notch(d, held = false) {
   S.notchT = S.t;
   const n = clamp(S.notch + d, -1, 4); if (n === S.notch) return;
   S.notch = n; snd.click(n + 1); pop($('bar').children[0], 1.06, 220);
-  if (n > 0 && d > 0) S.pitchK -= 0.04;
+  if (n > 0 && d > 0) S.pitchK += 0.04;
 }
 function toggleAnchor() {
   if (S.harbour || anc.state === 'raise') return;
@@ -829,7 +837,7 @@ function updateBoat(dt) {
   S.x = nx; S.z = nz;
   // pose: heave/pitch/roll from the swell + lean + nose-up
   const accelNow = (S.speed - S.prevSpeed) / Math.max(dt, 1e-3); S.prevSpeed = S.speed;
-  S.pitchK = follow(S.pitchK, -accelNow * C('noseUpK'), 4, dt);
+  S.pitchK = follow(S.pitchK, clamp(accelNow * C('noseUpK'), -0.07, 0.06), 4, dt);
   const lean = clamp(-S.yawVel * S.speed * C('leanK'), -C('leanMax'), C('leanMax'));
   S.rollK = follow(S.rollK, lean, 3, dt);
   const h0 = swellH(S.x, S.z, S.t, A), [rx, rz] = [-fz_, fx_];
@@ -859,7 +867,7 @@ function updateBoat(dt) {
       emit3('drop', p, { x: rx * s * (2 + 3 * k) + fx_ * sp * 0.5, y: 2.2 + rng() * 2.5 * k, z: rz * s * (2 + 3 * k) + fz_ * sp * 0.5 }, { life: 0.6 + rng() * 0.3, s0: 0.1 + rng() * 0.1, s1: 0.04 }); } }
   // exhaust: puffs from the stern pipe, more with throttle
   if (!S.anchored && S.notch !== 0) { S.smokeAcc = (S.smokeAcc || 0) + dt * (1.6 + 1.4 * Math.abs(S.notch)); while (S.smokeAcc > 1) { S.smokeAcc -= 1; const p = boatPoint(0.78, boat.deckY(3.2) + 1.35, 3.25);
-    emit3('smoke', p, { x: fx_ * sp * 0.75 + (rng() - 0.5) * 0.3, y: 2.4 + rng() * 0.8, z: fz_ * sp * 0.75 + (rng() - 0.5) * 0.3 }, { life: 1.6 + rng() * 0.6, s0: 0.12, s1: 0.5 + 0.15 * k, op: 0.7, drag: 0.97 }); } }
+    emit3('smoke', p, { x: fx_ * sp * 0.75 + (rng() - 0.5) * 0.3, y: 2.4 + rng() * 0.8, z: fz_ * sp * 0.75 + (rng() - 0.5) * 0.3 }, { life: 1.6 + rng() * 0.6, s0: 0.1, s1: 0.32 + 0.1 * k, op: 0.6, drag: 0.97 }); } }
   fx.collar.visible = false; fx.wake.visible = false;
   fx.ripples.material.uniforms.uOrigin.value.set(S.x, 0, S.z);
   snd.ambience(k, smooth(0.45, 1.35, A), dt);
