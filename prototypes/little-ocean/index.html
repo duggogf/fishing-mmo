@@ -108,9 +108,9 @@ body.cine .hud{opacity:.25}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:calc(var(--u)*44);padding:0 calc(var(--u)*22);border-radius:calc(var(--u)*10);font:800 calc(var(--u)*19) "Nunito",sans-serif;border:0;cursor:pointer;background:var(--cocoa);color:var(--cream);pointer-events:auto}
 .btn:disabled{background:#E9DDC4;color:#8A7D86;cursor:default}
 .btn.sec{background:none;border:1.5px solid var(--cocoa);color:var(--cocoa)}
-.total{margin-left:auto;font-size:calc(var(--u)*20);display:flex;align-items:center;gap:6px}
+.total{position:relative;margin-left:auto;font-size:calc(var(--u)*20);display:flex;align-items:center;gap:6px}
 .total b{font-family:"Fredoka",sans-serif;font-weight:600;font-size:calc(var(--u)*34);min-width:calc(var(--u)*70);text-align:right;font-variant-numeric:tabular-nums}
-.shine{position:relative;overflow:hidden}
+.shine{overflow:hidden}   /* never change position: #shells is absolutely placed */
 .shine::after{content:"";position:absolute;top:0;bottom:0;width:40%;left:-60%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.75),transparent);animation:sh .7s ease-out forwards}
 @keyframes sh{to{left:120%}}
 .crate{position:absolute;right:calc(var(--u)*24);top:calc(var(--u)*14);width:calc(var(--u)*70);height:calc(var(--u)*50);border:2px solid var(--cocoa);border-radius:calc(var(--u)*6);background:repeating-linear-gradient(90deg,#E9C994 0 calc(var(--u)*16),#D8B57E calc(var(--u)*16) calc(var(--u)*18))}
@@ -124,6 +124,33 @@ body.cine .hud{opacity:.25}
 .jc.sil{background:#EFE6D3;color:#C3B496}.jc.sil b{color:#8A7D86}
 .jc svg{width:calc(var(--u)*34);height:calc(var(--u)*34)}
 #mapScreen{background:none}
+/* fish tiles (rendered from the cel model) + MMO hover card */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,calc(var(--u)*86));gap:calc(var(--u)*10);padding:calc(var(--u)*16) calc(var(--u)*24);justify-content:start}
+.tile{position:relative;width:calc(var(--u)*86);height:calc(var(--u)*86);border-radius:calc(var(--u)*12);background:#F3E6C8;border:2px solid #E4D5B7;pointer-events:auto;transition:transform .12s,border-color .12s}
+.tile img{position:absolute;left:4%;top:8%;width:92%;height:84%;object-fit:contain;pointer-events:none}
+.tile .n{position:absolute;right:calc(var(--u)*6);bottom:calc(var(--u)*2);font:800 calc(var(--u)*16)/1.2 Nunito,sans-serif;color:var(--ink)}
+.tile .rs{position:absolute;left:calc(var(--u)*6);top:calc(var(--u)*3);color:var(--amber);font-size:calc(var(--u)*11);letter-spacing:-1px}
+.tile.r1{background:#EFEAF7;border-color:#C8C2EA}
+.tile.r2{background:linear-gradient(160deg,#FFF6E3,#FFE3A0);border-color:#E3B04A}
+.tile:hover{transform:translateY(-3px);border-color:var(--cocoa)}
+.tile.empty{background:none;border:2px dashed #DCCBA9}
+.tile.gone{opacity:.2;transform:scale(.85)}
+#tip{position:fixed;left:0;top:0;z-index:70;display:none;pointer-events:none;width:calc(var(--u)*290);background:var(--cream);color:var(--ink);border:2px solid var(--cocoa);border-radius:calc(var(--u)*12);box-shadow:0 6px 18px rgba(51,39,59,.3);padding:calc(var(--u)*12) calc(var(--u)*14);font-size:calc(var(--u)*16)}
+#tip .th{display:flex;gap:calc(var(--u)*10);align-items:center;margin-bottom:calc(var(--u)*8)}
+#tip .th img{width:calc(var(--u)*64);height:calc(var(--u)*64);background:#F3E6C8;border-radius:calc(var(--u)*10);object-fit:contain}
+#tip h5{margin:0;font-family:Fredoka,sans-serif;font-weight:600;font-size:calc(var(--u)*22)}
+#tip .st{color:var(--amber)}#tip .st span{color:#6A5D70;font-size:calc(var(--u)*14);margin-left:4px}
+#tip .tr{display:flex;justify-content:space-between;padding:calc(var(--u)*4) 0;border-top:1px solid #EFE3C9;color:#6A5D70}
+#tip .tr b{color:var(--ink);display:inline-flex;align-items:center;gap:3px}#tip .tr svg{width:calc(var(--u)*16);height:calc(var(--u)*16)}
+.fly img.fi,.fly img{width:calc(var(--u)*54);height:calc(var(--u)*54);object-fit:contain;filter:drop-shadow(0 2px 2px rgba(51,39,59,.35))}
+.lab img.li{width:calc(var(--u)*30);height:calc(var(--u)*30);object-fit:contain;margin:calc(var(--u)*-4) 0}
+/* harbour: buildings + leave */
+.bldw{transform-origin:50% 100%}
+.bld{display:flex;align-items:center;gap:calc(var(--u)*8);padding:calc(var(--u)*5) calc(var(--u)*14) calc(var(--u)*5) calc(var(--u)*5);border-radius:99px;background:#1E1726;color:var(--cream);font-size:calc(var(--u)*18);font-weight:800;pointer-events:auto;cursor:pointer;box-shadow:0 3px 10px rgba(30,23,38,.35);transition:transform .15s,background .15s,color .15s}
+.bld .bi{display:flex;align-items:center;justify-content:center;width:calc(var(--u)*34);height:calc(var(--u)*34);border-radius:50%;background:var(--cream);color:#1E1726}
+.bld.hov{background:var(--cream);color:var(--ink);transform:scale(1.12)}.bld.hov .bi{background:#1E1726;color:var(--cream)}
+#leave{position:fixed;left:50%;bottom:calc(var(--u)*36);transform:translateX(-50%) translateY(30px);opacity:0;pointer-events:none;transition:opacity .4s,transform .4s;height:calc(var(--u)*52);padding:0 calc(var(--u)*28);font-size:calc(var(--u)*20);gap:calc(var(--u)*10);z-index:8}
+#leave.show{opacity:1;transform:translateX(-50%);pointer-events:auto}
 #fishScreen{background:rgba(30,23,38,.12);justify-content:flex-end;padding-right:calc(var(--u)*90)}
 #bar,#log{transition:opacity .8s}
 #mapSvg{position:absolute;inset:0;width:100%;height:100%}
@@ -166,7 +193,7 @@ body.cine .hud{opacity:.25}
 </div></div>
 
 <div class="screen" id="yardScreen"><div class="paper" style="width:calc(var(--u)*720)">
-  <div class="ph"><h3>Shipyard</h3><q>Preview only in this prototype</q></div>
+  <div class="ph"><h3 id="yardTitle">Shipyard</h3><q>Preview only in this prototype</q></div>
   <div class="mbody" id="yardBody" style="height:auto"></div>
   <div class="pf"><span class="d" style="color:#6A5D70">Fitting, paint and decor are mocked in the GDD preview.</span><button class="btn sec" id="yardClose" style="margin-left:auto">Close</button></div>
 </div></div>
@@ -178,6 +205,7 @@ body.cine .hud{opacity:.25}
 
 <div class="screen" id="mapScreen"><svg id="mapSvg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice"></svg></div>
 
+<button class="btn" id="leave"><span class="key" style="background:#FFF6E3;color:#33273B">W</span> Set sail</button>
 <div id="start">
   <h1>Little Ocean</h1>
   <p>A small boat, a crew that fishes on its own, and a sea worth looking at.</p>

@@ -49,13 +49,15 @@ export function celFill(term = -0.06) {
   });
 }
 /** Inverted hull: back faces pushed out along smoothN in clip space, width in render-target px (2.5 @1080p, top of 09 F1 range). */
-export function celHull(widthPx = 2.5, lineScale) {
+// push (m): moves the shell away from the camera so it only shows on the outer silhouette of a multi-block figure
+// (prototype: crew outline without lines between head, torso and limbs).
+export function celHull(widthPx = 2.5, lineScale, push = 0) {
   return new THREE.ShaderMaterial({
-    uniforms: { ...CELU, width: { value: widthPx }, lineScale: lineScale || { value: 1 } },
+    uniforms: { ...CELU, width: { value: widthPx }, lineScale: lineScale || { value: 1 }, push: { value: push } },
     side: THREE.BackSide,
-    vertexShader: /* glsl */`uniform float width, rtH, rtW, lineScale; attribute vec3 smoothN; varying vec3 vP;
+    vertexShader: /* glsl */`uniform float width, rtH, rtW, lineScale, push; attribute vec3 smoothN; varying vec3 vP;
       void main(){
-        vec4 wp = modelMatrix * vec4(position, 1.0); vP = wp.xyz;
+        vec4 wp = modelMatrix * vec4(position, 1.0); vP = wp.xyz; wp.xyz += normalize(wp.xyz - cameraPosition) * push;
         vec4 cp = projectionMatrix * viewMatrix * wp;
         vec3 nv = normalize(mat3(viewMatrix) * normalize(mat3(modelMatrix) * smoothN));
         vec2 res = vec2(rtW, rtH);

@@ -8,7 +8,7 @@ rewarding — before any economy or upgrade logic exists? (Owner goal, 2026-11-2
 
 **In:** sailing 3C (throttle notches, steering, lean, nose-up, riding and surfing the swell, wake and spray, trailing
 camera with speed FOV, look-around and zoom), five fishing spots with automatic crew catches (12 species from doc 04,
-sizes, rarity, cards for new and rare fish), docking and the Fishmonger sell animation, five discoveries with glint,
+sizes, rarity, cards for new and rare fish), harbour dock mode (E to dock: the camera shows the whole quay, buildings outlined and clickable, Set sail to leave), the Fishmonger sell animation with fish tiles rendered from the 3D models and MMO-style hover cards, the anchor (drops on a chain, braking nose-dip at speed, snaps back with a wobble), five discoveries with glint,
 crew "?" and a letterboxed stamp, region titles, game clock with dusk, drizzle in The Swells, cozy map (M), Tab menu,
 Inspect (hold F), homecoming bell, idle camera drift.
 
