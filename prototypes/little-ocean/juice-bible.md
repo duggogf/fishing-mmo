@@ -27,7 +27,7 @@ harbour bell, gulls and warm window light.
 **Dial and limits.** Cozy row of the genre table, pushed to its upper edge on discovery and selling only; frequent
 events stay small. Pops 0.28–0.4 s with soft overshoot; shake only on big wave slams in The Swells (trauma ≤ 0.35,
 roll-dominant), never on UI; one key for all sound (F major pentatonic), soft timbres (marimba, glass, wood). HUD
-follows `/clean-ui` (ambient at rest; no speed readout — the wake and pennant show speed). Never: reward the player
+follows `/clean-ui` (ambient at rest; speed is a gauge painted on the sea beside the boat, not a screen readout). Never: reward the player
 for acting on the fishing (no tap-to-boost, no "Perfect!", no reaction to clicking the bobber; P2); no red flashes,
 no world-wide slow-motion (only the rare fish slows), no screen-filling particles, no timers or nagging (the hold-full hint shows once per session),
 nothing flashing more than 3 times a second.
