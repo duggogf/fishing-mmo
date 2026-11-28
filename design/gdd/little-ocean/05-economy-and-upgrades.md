@@ -5,6 +5,7 @@
 > **Last Updated**: 2026-11-26
 > **Last Verified**: 2026-11-26
 > **Implements Pillar**: P3 Curiosity is the currency of progress (primary), P2, P4
+> **Feel override (D10, 2026-11-28)**: `12-prototype-feel-spec.md` owns sale price = BaseValue × 3 and the selling sequence (§9.3, §10). Where this doc's feel or presentation values differ, follow 12.
 
 ## Summary
 

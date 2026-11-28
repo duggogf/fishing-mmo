@@ -5,6 +5,7 @@
 > **Last Updated**: 2026-11-26
 > **Last Verified**: 2026-11-26
 > **Implements Pillar**: P1 The ocean is the attraction (primary), P2 Hands off the line, P3 Curiosity is the currency of progress
+> **Feel override (D10, 2026-11-28)**: `12-prototype-feel-spec.md` owns handling, anchor, camera and boat VFX (§4–§8). Where this doc's feel or presentation values differ, follow 12.
 
 ## Summary
 

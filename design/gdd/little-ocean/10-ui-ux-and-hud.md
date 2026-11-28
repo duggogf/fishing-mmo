@@ -4,6 +4,7 @@
 > **Implements Pillar**: P1, P2, P3, P4 · Supports **H1** (first sale ≤8 min), **H3** (paper), **H4**
 > Sources: brief §6, §9, §12; 00-direction §5 A5, **§9 D1–D4 (override)**; painted-cel UI spec (vfx-and-ui.md §UI);
 > **owner UX pass 2026-11-26** (desktop scale, no crew HUD, action bar, activity log); references listed in §References.
+> **Feel override (D10, 2026-11-28)**: `12-prototype-feel-spec.md` owns harbour dock mode, catch HUD, tiles, cards, gauge and HUD timings (§8–§14). Where this doc's feel or presentation values differ, follow 12.
 
 ## Summary
 A small, desktop-scaled HUD: cargo and Shells in the top corners, a thin compass at top centre, an action bar of

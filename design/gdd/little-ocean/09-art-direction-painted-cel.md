@@ -5,6 +5,7 @@
 > **Technique source**: painted-cel-look skill (`SKILL.md`, `references/palette-and-values.md`, `unreal-port.md`,
 > `vfx-and-ui.md`, `characters.md`), cited below as **[SKILL]**, **[PAL]**, **[UE]**, **[VFX]**, **[CHR]**. Technique only:
 > no characters, places or identity colours from the source project are reused.
+> **Feel override (D10, 2026-11-28)**: `12-prototype-feel-spec.md` owns crew outline, VFX look, beam and gauge (§7–§9). Where this doc's feel or presentation values differ, follow 12.
 
 ## Summary
 

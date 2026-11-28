@@ -5,6 +5,7 @@
 > **Last Updated**: 2026-11-26
 > **Last Verified**: 2026-11-26
 > **Implements Pillar**: P2 Hands off the line (primary), P1 The ocean is the attraction, P3 Curiosity
+> **Feel override (D10, 2026-11-28)**: `12-prototype-feel-spec.md` owns catch rhythm, fights, escapes, crew animation and the rare moment (§9). Where this doc's feel or presentation values differ, follow 12.
 
 ## Summary
 

@@ -5,6 +5,7 @@
 > **Last Updated**: 2026-11-26
 > **Last Verified**: 2026-11-26
 > **Implements Pillar**: P1 The ocean is the attraction, P3 Curiosity is the currency of progress (primary), P4 Together, never required
+> **Feel override (D10, 2026-11-28)**: `12-prototype-feel-spec.md` owns world layout at prototype scale, discovery, glint, region titles, time and drizzle (§3, §12, §13). Where this doc's feel or presentation values differ, follow 12.
 
 ## Summary
 
